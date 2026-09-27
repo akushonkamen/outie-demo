@@ -323,7 +323,7 @@ a.btn{text-decoration:none}
 /* OUTIE LIVE — API 版。
    服务端（OurVerse）：http://127.0.0.1:8444/api/outie/*，身份用 x-anonymous-id 头。
    启动时探测 API；探测失败自动回退 localStorage 离线玩法（角落显示「离线」）。 */
-const API_ORIGIN=(function(){try{return localStorage.getItem('outie.api-base')||'http://127.0.0.1:8444';}catch(e){return 'http://127.0.0.1:8444';}})();
+const API_ORIGIN=(function(){try{var o=localStorage.getItem('outie.api-base');if(o)return o;}catch(e){}return (location.protocol.indexOf('http')===0&&location.port!=='8642')?location.origin:'http://127.0.0.1:8444';})();
 const API_BASE=API_ORIGIN+'/api';
 const IDENTITY_KEY='outie.identity.v1';
 const STORAGE_KEY='outie.singleplayer.v1';
@@ -740,7 +740,7 @@ function navMarkup(){
   return NAV_ITEMS.map(([id,label])=>`<button type="button" class="nav-btn" data-action="nav" data-view="${id}" ${view===id?'aria-current="page"':''}>${label}</button>`).join('');
 }
 function offlineNote(){
-  return `<p class="offline-note mono">离线模式 · 连接后可用</p>`;
+  return `<p class="offline-note mono">离线模式 · 连接后可用<button type="button" class="btn btn-dark" style="width:auto;min-height:0;padding:6px 10px;display:inline-flex;margin-left:10px" data-action="reconnect">重试</button></p>`;
 }
 function render(){
   document.body.classList.toggle('has-pet',Boolean(state.name));
@@ -1123,6 +1123,7 @@ function handleAction(button){
     }
     case 'checkin':if(button.classList.contains('map-marker'))mapFocusSpot=button.dataset.spot;showCheckin(button.dataset.spot);break;
     case 'redeem':mode==='api'?checkinApi(button.dataset.spot):redeemOffline(button.dataset.spot);break;
+    case 'reconnect':tryReconnect();break;
     case 'look':showLook(button.dataset.look);break;
     case 'equip-inline':wear(button.dataset.look);break;
     case 'wear':wear(button.dataset.look);break;
@@ -1201,11 +1202,25 @@ async function boot(){
     rebuildLooks();
     state=loadState();
     document.getElementById('offline-badge').hidden=false;
+    scheduleReconnect();
   }
   document.getElementById('dev-badge').hidden=!devSkipGeo;
+  document.getElementById('offline-badge').hidden=(mode!=='offline');
   document.getElementById('storage-warning').hidden=storageOK;
   render();
   if(view==='live')loadLivePhotos();
+}
+let reconnectTimer=null;
+function scheduleReconnect(){
+  if(reconnectTimer||mode!=='offline')return;
+  reconnectTimer=setInterval(async()=>{
+    if(await probeApi()){clearInterval(reconnectTimer);reconnectTimer=null;boot();}
+  },15000);
+}
+async function tryReconnect(){
+  if(mode!=='offline')return;
+  if(await probeApi()){if(reconnectTimer){clearInterval(reconnectTimer);reconnectTimer=null;}boot();}
+  else toast('还是连不上，稍后再试。');
 }
 document.getElementById('wordmark').innerHTML=pixText('OUTIE',4);
 boot();
