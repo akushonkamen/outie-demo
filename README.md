@@ -32,8 +32,11 @@
 
 | 文件 | 说明 |
 | --- | --- |
-| `outie-ink-demo.html` | **当前版本**（BUILD 0.2 / 墨水屏 + 8-bit 风格） |
-| `outie-y2k-demo.html` | 旧版留档（BUILD 0.1 / Y2K 粉紫风，已被否） |
+| `outie-live.html` | **当前主线**：连真实后端的完整产品（已并入 OurVerse 仓库 `web/`） |
+| `outie-ink-demo.html` | 离线演示版（墨水屏 + 8-bit，公网 Demo 即此文件） |
+| `outie-y2k-demo.html` | 旧版留档（Y2K 粉紫风，已被否） |
+
+> 2026-09-28 起，产品代码与 OurVerse 后端合并为单一仓库：[akushonkamen/OurVerse](https://github.com/akushonkamen/OurVerse)（前端在 `web/`，后端 outie 模块在 `backend/src`）。本目录保留演示文件与方案文档（`docs/integration-plan.md`）。
 
 - 玩法 1:1 覆盖 V1 循环：领养取名 → 模拟打卡 ×3 → 收造型换装 → 集齐进化
 - 视觉方向（2026-09-27 用户定稿）：**墨水屏 + 8-bit 像素**。
