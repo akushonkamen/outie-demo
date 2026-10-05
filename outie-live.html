@@ -2311,10 +2311,26 @@ function nearSectionMarkup(){
     :`<button type="button" class="live-status-btn" data-action="near-refresh">刷新</button>`;
   return `<section class="near-section"><div class="section-top"><div class="near-tabs"><button type="button" class="near-tab-btn${nearTab==='events'?' on':''}" data-action="near-tab" data-tab="events">附近的活动</button><button type="button" class="near-tab-btn${nearTab==='photos'?' on':''}" data-action="near-tab" data-tab="photos">附近的照片</button></div><div class="near-actions">${actions}</div></div><p class="small-meta mono" style="margin:0 0 10px">${count}</p><div id="near-body">${nearTab==='photos'?`<div class="live-grid" id="near-grid">${nearBody()}</div>`:eventsBody()}</div></section>`;
 }
+function nearCountText(){
+  const n=nearStatus==='ready'&&nearPhotos?nearPhotos.length:0;
+  const ne=nearEventsStatus==='ready'&&nearEvents?nearEvents.length:0;
+  return nearTab==='photos'?`${n} 张`:`${ne} 场`;
+}
 function renderNearGrid(){
-  if(nearTab==='events'){const wrap=main.querySelector('#near-body');if(wrap)wrap.innerHTML=eventsBody();return;}
-  const grid=main.querySelector('#near-grid');
-  if(grid)grid.innerHTML=nearBody();
+  /* Tab 高亮、计数行、操作按钮、内容整体同步：活动↔照片切换时 #near-body 结构不同
+     （照片=带 #near-grid 容器，活动=无容器），必须整块重渲染 */
+  document.querySelectorAll('.near-tab-btn').forEach(b=>b.classList.toggle('on',b.dataset.tab===nearTab));
+  const sec=document.querySelector('.near-section');
+  const countLine=sec?.querySelector('.small-meta');
+  if(countLine)countLine.textContent=nearCountText();
+  const actWrap=sec?.querySelector('.near-actions');
+  if(actWrap)actWrap.innerHTML=nearTab==='photos'
+    ?`<button type="button" class="btn btn-dark photo-new-btn" data-action="photo-new">${pixIcon('camera')}<span>拍一张</span></button><button type="button" class="live-status-btn" data-action="near-refresh">刷新</button>`
+    :`<button type="button" class="live-status-btn" data-action="near-refresh">刷新</button>`;
+  const wrap=document.getElementById('near-body');
+  if(!wrap)return;
+  if(nearTab==='events'){wrap.innerHTML=eventsBody();return;}
+  wrap.innerHTML=`<div class="live-grid" id="near-grid">${nearBody()}</div>`;
 }
 /* ---------- 附近活动 ---------- */
 let nearEventsScope='near';
