@@ -731,6 +731,41 @@ button.filter-tag:active{transform:translate(2px,2px);box-shadow:none}
 .his-val{color:var(--muted);flex:none}
 .utility-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .util-btn{background:var(--panel);border:2px solid var(--ink);padding:12px 10px;font-size:11px;font-weight:900;text-align:center;box-shadow:2px 2px 0 var(--ink)}
+/* ===== V3.3 示例稿排版对齐（首页/地图/相册/我的/活动页 + 头部） ===== */
+.logo-area{display:flex;flex-direction:column;align-items:flex-start}
+.logo-text{font-size:30px;font-weight:900;line-height:.9;letter-spacing:-2px;text-transform:uppercase;text-shadow:2px 2px 0 var(--pink)}
+.site-header{align-items:flex-start;min-height:0;padding:16px 0 12px;gap:12px}
+.status-pill{display:inline-block!important}
+.status-pill.mode-map{background:none;color:var(--blue);padding:0;margin-top:4px;box-shadow:none}
+.stats-strip{gap:2px}
+.stat-box{min-width:60px}
+.footer{display:none!important}
+main{position:relative;padding-top:16px}
+/* 宠物 LCD 屏：示例稿方形屏 + 左上角 MODE 小标签，去掉设备外框 */
+.pet-topline,.pet-caption,.ground,.pet-canvas .deco,.screen-badge{display:none!important}
+.pet-card{border:0!important;background:transparent!important;padding:0!important;box-shadow:none!important;position:static!important}
+.pet-canvas{aspect-ratio:1/1;height:auto;border-width:8px;border-radius:0;box-shadow:var(--hard)}
+.canvas-id{top:10px;left:10px;border:0;background:none;padding:0;color:rgba(0,0,0,.55);font-size:10px;letter-spacing:.08em}
+.pet-canvas.evolved .canvas-id{color:rgba(255,255,255,.55)}
+/* 事件卡：示例稿无箭头，↻ 移到右上角 */
+.nearby-arrow{display:none!important}
+.nearby-card{padding:12px}
+.rec-reroll{top:-10px;right:-10px}
+/* ACTIVITY_LOG：示例稿为上缘虚线列表，无框 */
+.act-log{border:0!important;border-top:2px dashed var(--ink)!important;background:none!important;padding:10px 0 0!important;box-shadow:none!important}
+/* 地图装饰：罗盘 / WHERE AM I? / 比例尺 */
+.compass{position:absolute;top:10px;right:10px;width:36px;height:36px;border:3px solid var(--ink);background:var(--panel);box-shadow:2px 2px 0 var(--ink);display:grid;place-items:center;font-weight:900;font-size:15px;z-index:6}
+.where-am-i{position:absolute;left:10px;bottom:10px;background:var(--ink);color:var(--paper);font-size:8px;font-weight:900;letter-spacing:.14em;padding:4px 7px;z-index:6}
+.scale-bar-container{position:absolute;right:10px;bottom:10px;display:flex;flex-direction:column;align-items:flex-end;gap:3px;z-index:6}
+.scale-text{font-size:8px;font-weight:900;background:var(--panel);padding:1px 4px;border:2px solid var(--ink)}
+.scale-bar{width:46px;height:5px;border:2px solid var(--ink);border-top:0;background:var(--panel)}
+.map-credit{bottom:36px}
+/* 活动页浮动返回键 */
+.back-btn{position:absolute;top:10px;left:10px;z-index:5;width:38px;height:38px;border:3px solid var(--ink);background:var(--panel);box-shadow:2px 2px 0 var(--ink);font:900 15px/1 inherit;display:grid;place-items:center}
+.back-btn:active{transform:translate(2px,2px);box-shadow:none}
+/* 语言菜单改为全局浮层（入口在 我的→LANG） */
+.lang-menu{position:fixed;top:64px;right:14px}
+
 .util-btn:active{transform:translate(2px,2px);box-shadow:none}
 .util-btn.admin{grid-column:span 2;background:var(--ink);color:#fff;margin-top:4px;padding:14px}
 /* 活动卡（地图页）GO/LOCK */
@@ -746,18 +781,17 @@ window.__OUTIE_I18N_PATTERNS__={"en":[["距你 ([0-9.]+[a-zA-Z]*)","$1 away"],["
 </head>
 <body>
 <a class="skip-link" href="#main">跳至主要内容</a>
-<div class="dna-bar" aria-hidden="true"><span class="dna-cell"></span><span class="dna-cell"></span><span class="dna-cell"></span><span class="dna-cell"></span><span class="dna-cell"></span><span class="dna-cell"></span><span class="dna-cell"></span><span class="dna-cell"></span></div>
+<div class="dna-bar" aria-hidden="true"><span class="dna-cell"></span><span class="dna-cell"></span><span class="dna-cell"></span><span class="dna-cell"></span><span class="dna-cell"></span></div>
 <span class="corner-badge offline mono" id="offline-badge" hidden>离线</span>
 <div class="shell">
   <header class="site-header">
-    <button class="brand" type="button" data-action="home" aria-label="OUTIE，返回我的宠物">
-      <span id="wordmark" aria-hidden="true"></span>
-      <span class="brand-caption mono">GO OUT. COLLECT.<br>EVOLVE. / 线下打卡收集</span>
+    <div class="logo-area">
+      <h1 class="logo-text" id="logo-text">Outie</h1>
       <span class="status-pill mono" id="status-pill">OUTIE LIVE</span>
-    </button>
-    <nav class="desktop-nav" id="desktop-nav" aria-label="主导航" hidden></nav>
-    <div class="header-end"><div class="stats-strip" id="header-stats" aria-label="宠物状态速览"></div><button class="corner-badge dev mono" id="dev-badge" data-action="dev-info" type="button" hidden>DEV</button><span class="lang-wrap"><button class="lang-btn mono" id="lang-btn" data-action="lang-menu" type="button" aria-label="切换语言"></button><span class="lang-menu" id="lang-menu" hidden></span></span><span id="header-account"></span></div>
+    </div>
+    <div class="header-end"><div class="stats-strip" id="header-stats" aria-label="状态速览"></div><button class="corner-badge dev mono" id="dev-badge" data-action="dev-info" type="button" hidden>DEV</button></div>
   </header>
+  <span class="lang-menu" id="lang-menu" hidden></span>
   <div class="storage-warning" id="storage-warning" role="status" hidden>浏览器不允许保存进度。你仍可以体验，但关闭页面后进度不会保留。</div>
   <main id="main" tabindex="-1"></main>
   <footer class="footer"><span class="mono">OUTIE</span><span class="footer-local mono" id="footer-local"></span></footer>
@@ -1414,13 +1448,32 @@ function navMarkup(){
   return NAV_ITEMS.map(([id,label,icon])=>`<button type="button" class="nav-btn" data-action="nav" data-view="${id}" ${view===id?'aria-current="page"':''}><span class="nav-box" aria-hidden="true">${pixIcon(icon)}</span><span class="nav-label">${label}</span></button>`).join('');
 }
 function updateHeaderChrome(){
+  const logo=document.getElementById('logo-text');
   const pill=document.getElementById('status-pill');
-  if(pill)pill.textContent=mode==='api'?'OUTIE LIVE / V3':'OFFLINE PLAY / V3';
   const stats=document.getElementById('header-stats');
+  const live=mode==='api';
+  const names={pet:'Outie',explore:'Explore',event:'Event',album:'Archive',mine:'Profile',help:'Help'};
+  if(logo)logo.textContent=names[view]||'Outie';
+  if(pill){
+    const pills={pet:live?'OUTIE LIVE V1.02':'OFFLINE PLAY V1.02',explore:'MAP_MODE_ENABLED',event:'EVENT_DETAILS',album:'ARCHIVE MODE V1.02',mine:'博物志图鉴',help:'MANUAL'};
+    pill.textContent=pills[view]||pills.pet;
+    pill.classList.toggle('mode-map',view==='explore');
+  }
   if(stats){
     const tokens=Number(pet&&pet.feedTokens)||0;
+    const touches=live
+      ?(Number(pet&&pet.touchToday)||0)
+      :(function(){try{const st=JSON.parse(localStorage.getItem('outie.petpet')||'{}');return st.day===todayKey()&&Array.isArray(st.log)?st.log.length:0;}catch(e){return 0;}})();
+    const stampTotal=(state&&state.rewards)?Object.keys(state.rewards).length:0;
+    const uid=String(identityId()||'0000').slice(-4).toUpperCase();
     const forms=LOOKS.filter(l=>unlocked(l.id)).length;
-    stats.innerHTML=`<div class="stat-box"><span class="stat-label">FEED</span><span class="stat-value">${tokens}g</span></div><div class="stat-box"><span class="stat-label">FORM</span><span class="stat-value">${forms}/${LOOKS.length}</span></div>`;
+    if(view==='album'){
+      stats.innerHTML=`<div class="stat-box"><span class="stat-label">PHOTOS</span><span class="stat-value" id="album-photo-count">${minePhotos?minePhotos.length:'--'}</span></div><div class="stat-box"><span class="stat-label">STAMPS</span><span class="stat-value">${String(stampTotal).padStart(2,'0')}</span></div>`;
+    }else if(view==='mine'){
+      stats.innerHTML=`<div class="uid-block mono"><span class="uid-main">UID ${esc(uid)}</span><span class="uid-sub">FORM ${forms}/${LOOKS.length}</span></div>`;
+    }else{
+      stats.innerHTML=`<div class="stat-box"><span class="stat-label">FEED</span><span class="stat-value">${tokens}g</span></div><div class="stat-box"><span class="stat-label">PETS</span><span class="stat-value">${touches}</span></div>`;
+    }
   }
 }
 /* ---------- 玩法说明书：全部规则集中在此，主界面只留状态 ---------- */
@@ -1451,7 +1504,7 @@ function offlineNote(){
 function render(){
   document.body.classList.toggle('has-pet',Boolean(state.name));
   document.getElementById('storage-warning').hidden=storageOK;
-  for(const id of ['desktop-nav','mobile-nav']){const nav=document.getElementById(id);nav.hidden=false;nav.innerHTML=localize(navMarkup());}
+  for(const id of ['mobile-nav']){const nav=document.getElementById(id);if(nav){nav.hidden=false;nav.innerHTML=localize(navMarkup());}}
   updateLangBtn();
   updateHeaderChrome();
   document.getElementById('footer-local').textContent=eventKeyText();
@@ -1468,13 +1521,12 @@ function render(){
 function moodOf(){const m=Number(pet&&pet.mood);return Number.isFinite(m)?Math.max(0,Math.min(100,Math.round(m))):60;}
 function hero(welcome=false){
   const look=lookFor(welcome?'base':state.equipped);
-  /* 饿了徽标：没喂且心情低时在宠物屏幕上闪，提醒今天该来 */
-  const hungry=!welcome&&mode==='api'&&pet&&!pet.fedToday&&moodOf()<70;
-  const badge=hungry?'HUNGRY':(look.id==='evolved'?'LIMITED':'GO OUT');
-  /* 饿的分级动画：饱=弹跳 / 平常=呼吸 / 饿=垂头摇 / 濒饿=发抖 */
+  /* 饿的分级动画：饱=弹跳 / 平常=呼吸 / 饿=垂头摇 / 濒饿=发抖（示例稿：方形 LCD 屏 + 左上 MODE 标签） */
   const moodVal=(!welcome&&mode==='api'&&pet)?moodOf():null;
   const moodCls=moodVal==null?'':(moodVal<20?'mood-starving':moodVal<40?'mood-hungry':(moodVal>=85&&pet.fedToday)?'mood-full':'mood-ok');
-  return `<div><section class="pet-card" aria-label="${welcome?'待领养的宠物':esc(state.name)+'，'+look.name}"><div class="pet-topline mono"><span>OUTIE PET DEVICE / ${look.label}</span><span class="pet-online"><span class="live-dot"></span>${welcome?'待领养':'已领养'}</span></div><div class="pet-canvas ${look.id}${moodCls?' '+moodCls:''}"><span class="canvas-id mono">${look.label}</span><span class="deco d1" aria-hidden="true">+</span><span class="deco d2" aria-hidden="true">+</span><div class="ground"></div><button class="pet-touch" type="button" data-action="pet" aria-label="${welcome?'宠物':esc(state.name)}">${petSVG(look.id,look.spec)}</button><span class="screen-badge mono${hungry?' hungry':''}">${badge}</span></div><div class="pet-caption"><div class="pet-name">${welcome?'未命名':esc(state.name)}<span class="look-label">${welcome?'原生形态 · 待领养':look.name+' · 当前形态'}</span></div><span class="look-chip mono">${welcome?'0/'+SPOTS.length+' 已收集':count()+'/'+SPOTS.length+' 已收集'}</span></div></section></div>`;
+  const modeTxt=moodVal==null?'IDLE':moodVal<20?'SOS':moodVal<40?'HUNGRY':moodVal>=85?'HAPPY':'IDLE';
+  const idx=Math.max(1,LOOKS.findIndex(l=>l.id===look.id)+1);
+  return `<div><section class="pet-card" aria-label="${welcome?'待领养的宠物':esc(state.name)}"><div class="pet-canvas ${look.id}${moodCls?' '+moodCls:''}"><span class="canvas-id mono">NO.00${idx} · MODE: ${modeTxt}_ANIM</span><button class="pet-touch" type="button" data-action="pet" aria-label="${welcome?'宠物':esc(state.name)}">${petSVG(look.id,look.spec)}</button></div></section></div>`;
 }
 function renderWelcome(){
   const modeNote=mode==='api'?'':'<p class="form-foot">离线演示：进度只存在本机。</p>';
@@ -1665,7 +1717,7 @@ function nearbyEventCard(){
   const tag=isCurrent?'当前活动':(homeRecHasGeo?'同城推荐':'随机推荐');
   const action=isCurrent?'nav':'event-open';
   const attrs=isCurrent?'data-view="event"':`data-event="${esc(e.key)}"`;
-  return `<div class="nearby-wrap"><button type="button" class="panel nearby-card" data-action="${action}" ${attrs}><span class="event-ico" aria-hidden="true">📍</span><div class="nearby-info"><span class="nearby-tag mono">${tag}</span><h3>${esc(e.name)}</h3><p>${esc(e.subtitle||'')} · ${sub}</p></div><span class="nearby-arrow mono" aria-hidden="true">GO&gt;</span></button><button type="button" class="rec-reroll mono" data-action="home-rec-reroll" aria-label="换一场推荐">↻</button></div>`;
+  return `<div class="nearby-wrap"><button type="button" class="panel nearby-card" data-action="${action}" ${attrs}><span class="event-ico" aria-hidden="true">📍</span><div class="nearby-info"><span class="nearby-tag mono">${tag}</span><h3>${esc(e.name)}</h3><p>${esc(e.subtitle||'')} · ${sub}</p></div></button><button type="button" class="rec-reroll mono" data-action="home-rec-reroll" aria-label="换一场推荐">↻</button></div>`;
 }
 function fmtHM(ts){
   const d=new Date(ts);
@@ -1715,10 +1767,10 @@ function actionGridMarkup(){
   const remaining=SPOTS.length-count();
   const tokens=Number(pet&&pet.feedTokens)||0;
   return `<section class="action-grid">
-<button type="button" class="btn-act act-go" data-action="nav" data-view="event"><span class="act-title">打卡</span><span class="act-sub">${remaining>0?remaining+' SPOTS LEFT':'ALL CLEAR'}</span></button>
-<button type="button" class="btn-act act-feed" data-action="feed" ${tokens>0?'':'disabled'}><span class="act-title">喂食</span><span class="act-sub">${tokens>0?'-1 包饲料':'饲料 0'}</span></button>
-<button type="button" class="btn-act act-cam" data-action="photo-new"><span class="act-title">拍照</span><span class="act-sub">现场</span></button>
-<button type="button" class="btn-act act-pet" data-action="pet"><span class="act-title">摸头</span><span class="act-sub">${touchStateText()}</span></button>
+<button type="button" class="btn-act act-go" data-action="nav" data-view="event"><span class="act-title">GO 打卡</span><span class="act-sub">${remaining>0?remaining+' SPOTS LEFT':'ALL CLEAR'}</span></button>
+<button type="button" class="btn-act act-feed" data-action="feed" ${tokens>0?'':'disabled'}><span class="act-title">FEED 喂食</span><span class="act-sub">${tokens>0?'-1 包饲料':'饲料 0'}</span></button>
+<button type="button" class="btn-act act-cam" data-action="photo-new"><span class="act-title">CAM 拍照</span><span class="act-sub">现场留念</span></button>
+<button type="button" class="btn-act act-pet" data-action="pet"><span class="act-title">BOOP 摸头</span><span class="act-sub">${touchStateText()}</span></button>
 </section>`;
 }
 function activityLogMarkup(){
@@ -1748,7 +1800,7 @@ function showHomeDetail(){
   modal(`<p class="modal-eyebrow mono">STATUS / 宠物状态</p><h2 id="dialog-title">详情</h2>${wxCard()}${feedMarkup()}${mode==='api'&&!eventData?`<section class="panel goal-panel" style="box-shadow:none"><h2>当前没有进行中的活动</h2></section>`:goalMarkup()}<p class="modal-note">造型收藏在「我的 → 换装」。</p>`,'home-detail');
 }
 function renderPetPage(){
-  return `${hero()}${nearbyEventCard()}${actionGridMarkup()}${activityLogMarkup()}${homeStatusStrip()}`;
+  return `${hero()}${nearbyEventCard()}${actionGridMarkup()}${activityLogMarkup()}`;
 }
 /* ---------- pixel city map (去哪儿) ---------- */
 function mapProject(lng,lat){
@@ -2240,7 +2292,7 @@ function cityMapSchematicMarkup(){
 function cityMapMarkup(){
   if(mode!=='api')return cityMapSchematicMarkup();
   if(mapRealFailed)return cityMapSchematicMarkup();
-  return `<figure class="map-wrap"><div class="map-tag mono">${eventData?'CITY MAP / '+esc(eventKeyText()):'CITY MAP'}</div><button type="button" class="map-refresh mono" data-action="map-refresh" aria-label="刷新定位与地图">刷新</button><div class="map-holder" id="map-holder"><div class="map-canvas" id="map-canvas" aria-label="附近地图"></div><span class="map-loading mono">加载中…</span><span class="map-credit mono">MAP © 高德地图</span></div><figcaption class="map-legend mono"><span class="legend-item"><span class="legend-swatch here"></span>你在这里</span><span class="legend-item"><span class="legend-swatch"></span>活动点位</span><span class="legend-item"><span class="legend-swatch done"></span>附近照片</span></figcaption></figure>`;
+  return `<figure class="map-wrap"><div class="map-tag mono">${eventData?'CITY MAP / '+esc(eventKeyText()):'CITY MAP'}</div><button type="button" class="map-refresh mono" data-action="map-refresh" aria-label="刷新定位与地图">刷新</button><div class="map-holder" id="map-holder"><div class="map-canvas" id="map-canvas" aria-label="附近地图"></div><span class="map-loading mono">加载中…</span><span class="map-credit mono">MAP © 高德地图</span><span class="compass" aria-hidden="true">N</span><span class="where-am-i mono" aria-hidden="true">WHERE AM I?</span><span class="scale-bar-container" aria-hidden="true"><span class="scale-text mono">100m</span><span class="scale-bar"></span></span></div><figcaption class="map-legend mono"><span class="legend-item"><span class="legend-swatch here"></span>你在这里</span><span class="legend-item"><span class="legend-swatch"></span>活动点位</span><span class="legend-item"><span class="legend-swatch done"></span>附近照片</span></figcaption></figure>`;
 }
 function spotDistanceText(s){
   if(mode!=='api'||geo.state!=='ok'||!geo.coords||!Number.isFinite(s.lng))return '';
@@ -2251,7 +2303,7 @@ function renderExplore(){
   if(mode==='api'&&geo.state==='idle')startLocate();
   if(mode==='api'&&nearStatus==='idle')loadNearStream();
   if(mode==='api'&&nearEventsStatus==='idle')loadNearEvents();
-  return `<div class="screen-head"><div><h1 class="screen-title">Explore</h1><span class="screen-tag mono">MAP_MODE_ENABLED</span></div></div>${mode==='api'?'':offlineNote()}${cityMapMarkup()}${nearSectionMarkup()}`;
+  return `${mode==='api'?'':offlineNote()}${cityMapMarkup()}${nearSectionMarkup()}`;
 }
 let eventWallPhotos=null,eventWallKey=null;
 function loadEventWall(bust){
@@ -2290,7 +2342,7 @@ function spotRow(s){
 }
 function renderEventPage(){
   if(mode!=='api'||!eventData){
-    return `<div class="screen-head"><div><h1 class="screen-title">Event</h1></div><button type="button" class="back-link mono" data-action="nav" data-view="explore">← 地图</button></div><p class="geo-note mono">当前没有进行中的活动。</p>`;
+    return `<p class="geo-note mono">当前没有进行中的活动。</p><div class="modal-actions"><button type="button" class="btn btn-dark" style="width:auto" data-action="nav" data-view="explore">← 地图</button></div>`;
   }
   const remaining=SPOTS.length-count();
   const nextSpot=SPOTS.find(s=>!state.rewards[s.id]);
@@ -2299,7 +2351,7 @@ function renderEventPage(){
   const heroAct=remaining>0
     ?{act:'checkin',spot:`data-spot="${esc(nextSpot.id)}"`,label:'CHECK IN'}
     :(state.evolved?{act:'nav',spot:'data-view="pet"',label:'ALL DONE'}:{act:'evolve-prompt',spot:'',label:'UNLOCK'});
-  return `<div class="screen-head"><div><h1 class="screen-title">Event</h1><span class="screen-tag mono">EVENT_DETAILS</span></div><button type="button" class="back-link mono" data-action="nav" data-view="explore">← 地图</button></div>
+  return `<button type="button" class="back-btn" data-action="nav" data-view="explore" aria-label="返回地图">←</button>
 <section class="event-flyer" aria-label="${esc(eventData.name)}"><p class="event-host mono">HOSTED BY ${esc(String(eventData.organizer||eventData.name||'OUTIE').toUpperCase())}</p><div class="event-wordmark-line" role="img" aria-label="${esc(eventKeyText())}">${pixText(eventKeyText(),5)}</div><p class="event-sub">${esc(eventData.subtitle||'到场打卡收集')} · 点位顺序不限</p><span class="flyer-ring" aria-hidden="true"></span></section>
 <section class="checkin-hero"><button type="button" class="btn-checkin" data-action="${heroAct.act}" ${heroAct.spot}><span aria-hidden="true">📍</span> ${heroAct.label}</button><div class="event-stamp" aria-hidden="true"><span class="stamp-top mono">OUTIE • EVENT</span><span class="stamp-date mono">${stampDate}</span></div></section>
 <section class="panel booklet"><div class="section-top"><h2>点位集章册</h2><span class="small-meta mono">PROGRESS: ${count()}/${SPOTS.length}</span></div>${bookletMarkup()}</section>
@@ -2599,9 +2651,7 @@ function renderAlbumBody(){
   if(stat)stat.textContent=minePhotos?minePhotos.length:'--';
 }
 function renderAlbumPage(){
-  const total=Object.keys(state.rewards).length;
-  return `<div class="screen-head"><div><h1 class="screen-title">Archive</h1><span class="screen-pill mono">ARCHIVE MODE</span></div><div class="mini-stats"><div class="stat-box"><span class="stat-label">PHOTOS</span><span class="stat-value" id="album-photo-count">${minePhotos?minePhotos.length:'--'}</span></div><div class="stat-box"><span class="stat-label">STAMPS</span><span class="stat-value">${String(total).padStart(2,'0')}</span></div></div></div>
-<div class="filter-scroll"><span class="filter-tag active">ALL_FILES</span><button type="button" class="filter-tag" data-action="nav" data-view="explore">📍 NEARBY_POINT</button><button type="button" class="filter-tag" data-action="nav" data-view="pet">🍖 FEED_LOG</button><button type="button" class="filter-tag" data-action="nav" data-view="pet">🎨 CUSTOM_SKIN</button><button type="button" class="filter-tag" data-action="nav" data-view="help">🤝 TRADES</button></div>
+  return `<div class="filter-scroll"><span class="filter-tag active">ALL_FILES</span><button type="button" class="filter-tag" data-action="nav" data-view="explore">📍 NEARBY_POINT</button><button type="button" class="filter-tag" data-action="nav" data-view="pet">🍖 FEED_LOG</button><button type="button" class="filter-tag" data-action="nav" data-view="pet">🎨 CUSTOM_SKIN</button><button type="button" class="filter-tag" data-action="nav" data-view="help">🤝 TRADES</button></div>
 <div id="album-body">${albumBody()}</div>`;
 }
 function mineCell(p){
@@ -2929,14 +2979,14 @@ function renderMinePage(){
     ?pastCollection.filter(c=>c.eventKey!==(eventData&&eventData.key)).map(c=>`<div class="his-row"><span>${esc(c.eventName||'Past Event')}</span><span class="his-val mono">${c.spots?c.spots.length+' STAMPS':'JOINED'}${c.evolved?' ★':''}</span></div>`).join('')
     :(eventData?`<div class="his-row"><span>${esc(eventData.name)}</span><span class="his-val mono">${count()}/${SPOTS.length} IN PROGRESS</span></div>`:'');
   const utilityGrid=`<section class="utility-grid">
-<button type="button" class="util-btn" data-action="login-open">账号</button>
-<button type="button" class="util-btn" data-action="lang-menu">语言</button>
-<button type="button" class="util-btn" data-action="sound-toggle">音效</button>
-<button type="button" class="util-btn" data-action="nav" data-view="help">帮助</button>
-${mode==='api'?`<button type="button" class="util-btn admin" data-action="dev-toggle">活动方工作台</button>`:''}
+<button type="button" class="util-btn" data-action="login-open">ACCOUNT 账号</button>
+<button type="button" class="util-btn" data-action="lang-menu">LANG 语言</button>
+<button type="button" class="util-btn" data-action="more-open">SETTINGS 设置</button>
+<button type="button" class="util-btn" data-action="nav" data-view="help">HELP 帮助</button>
+${mode==='api'?`<button type="button" class="util-btn admin" data-action="dev-toggle">活动方工作台 WORKBENCH &gt;</button>`:''}
 </section>`;
-  return `<div class="screen-head"><div><h1 class="screen-title">Profile</h1><span class="screen-pill mono">博物志图鉴</span></div><div class="uid-block mono"><span class="uid-main">FORM ${LOOKS.filter(l=>unlocked(l.id)).length}/${LOOKS.length}</span><span class="uid-sub">${mode==='api'?'LIVE':'OFFLINE'}</span></div></div>
-<div class="mine-stack">${specimenCard}
+  return `<div class="mine-stack">
+<section class="mine-block"><h2 class="section-header-h">形态图鉴</h2>${specimenCard}</section>
 <section class="mine-block"><h2 class="section-header-h">凭证票根</h2>${mode==='api'?`<div id="voucher-list"><p class="about-list">加载中…</p></div>`:'<p class="about-list">离线模式暂无凭证。</p>'}</section>
 ${historyRows?`<section class="mine-block"><h2 class="section-header-h">参与活动</h2><div class="panel his-list">${historyRows}</div></section>`:''}
 ${utilityGrid}
@@ -3263,6 +3313,11 @@ function handleAction(button){
       break;
     }
     case 'voucher-retry':loadMyVouchers();break;
+    case 'more-open':{
+      const drawer=document.querySelector('.more-drawer');
+      if(drawer){drawer.open=true;drawer.scrollIntoView({block:'center'});}
+      break;
+    }
     case 'wb-redeem':(async()=>{
       const ev=button.dataset.event;
       const input=document.getElementById('redeem-'+ev);
@@ -3599,7 +3654,7 @@ async function tryReconnect(){
   if(await probeApi()){if(reconnectTimer){clearInterval(reconnectTimer);reconnectTimer=null;}boot();}
   else toast('连接失败。稍后重试');
 }
-document.getElementById('wordmark').innerHTML=pixText('OUTIE',4);
+const __wm=document.getElementById('wordmark');if(__wm)__wm.innerHTML=pixText('OUTIE',4);
 /* 步数计步：恢复今日进度；之前授权过就静默继续 */
 stepsLoad();
 if(pedometerState==='on'&&window.DeviceMotionEvent&&typeof window.DeviceMotionEvent.requestPermission!=='function'){
@@ -3624,5 +3679,6 @@ captureRef();
 })();
 boot();
 </script>
+<script>window.addEventListener("error",function(e){try{localStorage.setItem("outie.__err",(e.message||"")+" || "+(e.filename||"")+":"+e.lineno+" || "+String((e.error&&e.error.stack)||"").slice(0,500));}catch(_){}});</script>
 </body>
 </html>
