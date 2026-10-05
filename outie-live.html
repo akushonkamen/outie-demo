@@ -2651,8 +2651,7 @@ function renderAlbumBody(){
   if(stat)stat.textContent=minePhotos?minePhotos.length:'--';
 }
 function renderAlbumPage(){
-  return `<div class="filter-scroll"><span class="filter-tag active">ALL_FILES</span><button type="button" class="filter-tag" data-action="nav" data-view="explore">📍 NEARBY_POINT</button><button type="button" class="filter-tag" data-action="nav" data-view="pet">🍖 FEED_LOG</button><button type="button" class="filter-tag" data-action="nav" data-view="pet">🎨 CUSTOM_SKIN</button><button type="button" class="filter-tag" data-action="nav" data-view="help">🤝 TRADES</button></div>
-<div id="album-body">${albumBody()}</div>`;
+  return `<div id="album-body">${albumBody()}</div>`;
 }
 function mineCell(p){
   const url=esc(photoAbsUrl(p.url));
