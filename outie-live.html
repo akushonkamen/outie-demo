@@ -648,7 +648,8 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .stamp-slot.bonus.filled{border:3px solid var(--purple);color:var(--purple);background:var(--panel)}
 .booklet-note{font-size:10px;font-weight:700;margin-top:10px}
 .spot-rows{display:flex;flex-direction:column;gap:10px;margin:14px 0}
-.spot-row{display:flex;align-items:center;gap:10px;background:var(--panel);border:3px solid var(--ink);padding:10px 12px;box-shadow:3px 3px 0 var(--ink)}
+.spot-row{display:flex;align-items:center;gap:10px;background:var(--panel);border:3px solid var(--ink);padding:10px 12px;box-shadow:3px 3px 0 var(--ink);scroll-margin-top:16px}
+.spot-row.focus-spot{outline:4px solid var(--ink);outline-offset:2px}
 .row-no{font-size:12px;font-weight:900;color:var(--muted);flex:none}
 .row-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .row-info strong{font-size:13px;font-weight:900}
@@ -2149,7 +2150,7 @@ function bookletMarkup(){
 }
 function spotRow(s){
   const done=Boolean(state.rewards[s.id]);
-  return `<div class="spot-row"><span class="row-no mono">${esc(s.number||'')}</span><div class="row-info"><strong>${esc(s.name)}</strong><span class="row-hint mono">${esc(s.zone||'')} · ${esc(s.line||s.address||'')}</span></div>${done?`<button type="button" class="btn-mini btn-stamped mono" data-action="look" data-look="${esc(s.id)}">STAMPED</button>`:`<button type="button" class="btn-mini btn-go" data-action="checkin" data-spot="${esc(s.id)}">打卡</button>`}</div>`;
+  return `<div class="spot-row" id="spot-${esc(s.id)}"><span class="row-no mono">${esc(s.number||'')}</span><div class="row-info"><strong>${esc(s.name)}</strong><span class="row-hint mono">${esc(s.zone||'')} · ${esc(s.line||s.address||'')}</span></div>${done?`<button type="button" class="btn-mini btn-stamped mono" data-action="look" data-look="${esc(s.id)}">STAMPED</button>`:`<button type="button" class="btn-mini btn-go" data-action="checkin" data-spot="${esc(s.id)}">打卡</button>`}</div>`;
 }
 function renderEventPage(){
   if(mode!=='api'||!eventData){
@@ -3208,7 +3209,7 @@ function handleAction(button){
     case 'album-open':mineAlbumIdx=Number(button.dataset.idx);renderMineGrid();break;
     case 'album-back':mineAlbumIdx=null;renderMineGrid();break;
     case 'github-login':location.href=API_BASE+'/auth/github';break;
-    case 'goto-spot':closeModal();navigate('explore',button.dataset.spot||null);break;
+    case 'goto-spot':closeModal();navigate('event',button.dataset.spot||null);break;
     case 'evolve-prompt':showEvolutionPrompt();break;
     case 'evolve':evolve();break;
     case 'reset-prompt':resetPrompt();break;
