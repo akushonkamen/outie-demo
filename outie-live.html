@@ -311,9 +311,9 @@ a.btn{text-decoration:none}
 .confetti i{position:absolute;top:-16px;left:var(--x);width:8px;height:8px;background:var(--c);animation:confetti-drop 1.3s steps(14,end) var(--d) both}
 @keyframes confetti-drop{0%{transform:translateY(0)}100%{transform:translateY(560px)}}
 /* 喂食爱心：从宠物身上飘起 */
-.feed-hearts{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:4}
-.feed-hearts i{position:absolute;bottom:30%;left:var(--x);width:14px;height:14px;background:var(--c);clip-path:polygon(0 30%,15% 15%,35% 15%,50% 32%,65% 15%,85% 15%,100% 30%,100% 55%,50% 100%,0 55%);animation:heart-float 1.1s steps(9,end) var(--d) both}
-@keyframes heart-float{0%{transform:translateY(0);opacity:0}15%{opacity:1}100%{transform:translateY(-130px);opacity:0}}
+.feed-hearts{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:5}
+.feed-hearts i{position:absolute;bottom:32%;left:var(--x);width:18px;height:18px;background:var(--c);clip-path:polygon(0 30%,15% 15%,35% 15%,50% 32%,65% 15%,85% 15%,100% 30%,100% 55%,50% 100%,0 55%);animation:heart-float 1.35s steps(11,end) var(--d,0s) both}
+@keyframes heart-float{0%{transform:translate(0,0) scale(.5);opacity:0}10%{opacity:1;transform:translate(0,-10px) scale(1)}50%{transform:translate(9px,-85px) scale(1)}100%{transform:translate(-3px,-185px) scale(1);opacity:0}}
 .success-chip{display:inline-flex;align-items:center;gap:6px;background:var(--ink);color:var(--paper);font-size:10px;letter-spacing:.12em;font-weight:700;padding:6px 9px;margin-bottom:13px}
 .success-chip .icon{width:11px;height:11px}
 .hidden-look .pet-svg{opacity:.92}
@@ -353,7 +353,7 @@ a.btn{text-decoration:none}
 .toast{bottom:96px}
 }
 @media(max-width:359px){.shell{padding:0 12px}.pet-touch{width:224px;height:214px}.looks-grid{gap:4px}.look-name{font-size:8px}.spot-card{grid-template-columns:96px minmax(0,1fr)}.demo-badge{display:none}}
-@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}.confetti{display:none}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}.confetti{display:none}.btn-act.boop{animation:act-boop .55s steps(6,end) 1!important}.pet-canvas .pet-touch.hop svg{animation:hop2 .62s steps(1,end) 1!important}.feed-hearts i{animation:heart-float 1.35s steps(11,end) var(--d,0s) both!important}.touch-fx i{animation:star-burst .55s steps(5,end) both!important}}
 .photo-hit{display:block;padding:0;background:none;border:0;cursor:pointer}
 .photo-hit img{width:100%;height:auto;display:block}
 .near-section{margin:0 0 16px}
@@ -619,9 +619,21 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .act-cam{background:var(--green);color:#fff}
 .act-pet{background:var(--panel);color:var(--ink)}
 .act-log{border:2px dashed var(--ink);padding:10px 12px;background:rgba(255,255,255,.4)}
-/* 摸头动效：按钮弹跳 + 画布爱心 */
-.btn-act.boop{animation:act-boop .5s steps(5,end) 1}
-@keyframes act-boop{0%{transform:scale(1)}30%{transform:scale(.93) rotate(-1.2deg)}60%{transform:scale(1.04) rotate(.6deg)}100%{transform:scale(1)}}
+/* 摸头动效：按钮弹跳 + 宠物弹跳 + 爱心 + 星星迸发 + 画布微震 */
+.btn-act.boop{animation:act-boop .55s steps(6,end) 1}
+@keyframes act-boop{0%{transform:scale(1)}16%{transform:scale(.82) rotate(-2.6deg)}44%{transform:scale(1.09) rotate(1.4deg)}72%{transform:scale(.94)}100%{transform:scale(1)}}
+.pet-canvas.shake{animation:canvas-shake .26s steps(2,end) 1}
+@keyframes canvas-shake{0%,100%{transform:translate(0,0)}25%{transform:translate(-2px,1px)}50%{transform:translate(2px,-1px)}75%{transform:translate(-1px,0)}}
+/* hop2 特异度必须压过 .pet-canvas.mood-* .pet-svg 待机动画，否则摸头时宠物不跳 */
+.pet-canvas .pet-touch.hop svg{animation:hop2 .62s steps(1,end) 1}
+@keyframes hop2{0%,14%{transform:translateY(0) scaleY(1)}15%,39%{transform:translateY(-22px) scaleY(1.04)}40%,44%{transform:translateY(0) scaleY(.88)}45%,54%{transform:translateY(0) scaleY(1)}55%,79%{transform:translateY(-12px)}80%,83%{transform:translateY(0) scaleY(.93)}84%,100%{transform:translateY(0) scaleY(1)}}
+.touch-fx{position:absolute;left:50%;bottom:44%;width:0;height:0;pointer-events:none;z-index:6}
+.touch-fx i{position:absolute;left:-7px;top:-7px;width:14px;height:14px;background:var(--c);clip-path:polygon(50% 0,64% 36%,100% 50%,64% 64%,50% 100%,36% 64%,0 50%,36% 36%);animation:star-burst .55s steps(5,end) both}
+.touch-fx i:nth-child(1){--c:var(--yellow);--tx:-44px;--ty:-34px;--r:140deg}
+.touch-fx i:nth-child(2){--c:var(--pink);--tx:44px;--ty:-34px;--r:-140deg}
+.touch-fx i:nth-child(3){--c:var(--blue);--tx:-52px;--ty:6px;--r:90deg}
+.touch-fx i:nth-child(4){--c:var(--green);--tx:52px;--ty:6px;--r:-90deg}
+@keyframes star-burst{0%{transform:translate(0,0) scale(.3) rotate(0);opacity:1}100%{transform:translate(var(--tx,0),var(--ty,0)) scale(1.2) rotate(var(--r,0));opacity:0}}
 .log-title{font-size:10px;font-weight:900;letter-spacing:.12em;margin-bottom:8px}
 .log-row{display:flex;justify-content:space-between;gap:10px;font-size:11px;font-weight:700;padding:5px 0;border-top:1px dashed rgba(26,26,26,.25)}
 .log-row:first-of-type{border-top:0}
@@ -1686,13 +1698,18 @@ function petFx(button){
   const canvas=document.querySelector('.pet-canvas');
   if(!canvas)return;
   const touch=canvas.querySelector('.pet-touch');
-  if(touch){touch.classList.remove('hop');void touch.offsetWidth;touch.classList.add('hop');}
+  if(touch){touch.classList.remove('hop');void touch.offsetWidth;touch.classList.add('hop');setTimeout(()=>touch.classList.remove('hop'),700);}
+  canvas.classList.remove('shake');void canvas.offsetWidth;canvas.classList.add('shake');
+  setTimeout(()=>canvas.classList.remove('shake'),320);
   const hearts=document.createElement('div');
   hearts.className='feed-hearts';
   const colors=['var(--pink)','var(--yellow)','var(--blue)','var(--purple)','var(--green)','var(--red)'];
-  hearts.innerHTML=Array.from({length:6},(_,i)=>`<i style="--x:${12+i*15}%;--c:${colors[i%colors.length]};--d:${(i*0.09).toFixed(2)}s"></i>`).join('');
+  hearts.innerHTML=Array.from({length:8},(_,i)=>`<i style="--x:${7+i*11}%;--c:${colors[i%colors.length]};--d:${(i*0.07).toFixed(2)}s"></i>`).join('');
   canvas.appendChild(hearts);
-  setTimeout(()=>hearts.remove(),1300);
+  const fx=document.createElement('div');
+  fx.className='touch-fx';fx.innerHTML='<i></i><i></i><i></i><i></i>';
+  canvas.appendChild(fx);
+  setTimeout(()=>{hearts.remove();fx.remove();},1600);
 }
 function actionGridMarkup(){
   const remaining=SPOTS.length-count();
