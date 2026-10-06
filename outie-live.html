@@ -709,6 +709,7 @@ button.filter-tag:active{transform:translate(2px,2px);box-shadow:none}
 .section-date{font-size:10px;color:var(--muted);font-weight:700}
 .photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .photo-grid .live-frame{margin:0}
+.photo-grid .live-frame:nth-child(even){transform:rotate(.8deg)}
 .empty-state{text-align:center;padding:36px 20px;border:2px dashed #999;color:#888;font-size:11px;font-weight:700;line-height:2}
 /* 我的页 */
 .mine-stack{display:flex;flex-direction:column;gap:16px}
@@ -1188,7 +1189,7 @@ async function checkinApi(spotId){
   };
   if(devSkipGeo){
     dis();
-    try{handle(await doPost(null));}catch(error){re();toast(errText(error));}
+    try{handle(await doPost(null));}catch(error){re();const ce=document.getElementById('checkin-error');if(ce)ce.textContent=errText(error);toast(errText(error));}
     return;
   }
   if(!navigator.geolocation){toast('此浏览器不支持定位。');return;}
@@ -1199,8 +1200,8 @@ async function checkinApi(spotId){
       geo.accuracy=Math.max(30,Math.round(position.coords.accuracy||0));
       handle(await doPost({userLng:position.coords.longitude,userLat:position.coords.latitude}));
       re();
-    }catch(error){re();toast(errText(error));}
-  },error=>{re();toast('获取定位失败：'+(error.message||'请检查定位权限'));},{enableHighAccuracy:true,timeout:9000,maximumAge:15000});
+    }catch(error){re();const ce=document.getElementById('checkin-error');if(ce)ce.textContent=errText(error);toast(errText(error));}
+  },error=>{re();const ce=document.getElementById('checkin-error');if(ce)ce.textContent='获取定位失败：'+(error.message||'请检查定位权限');toast('获取定位失败：'+(error.message||'请检查定位权限'));},{enableHighAccuracy:true,timeout:9000,maximumAge:15000});
 }
 
 /* ---------- pixel font (variable width, 5 rows) ---------- */
@@ -1602,7 +1603,7 @@ function updateHeaderChrome(){
       ?(Number(pet&&pet.touchToday)||0)
       :(function(){try{const st=JSON.parse(localStorage.getItem('outie.petpet')||'{}');return st.day===todayKey()&&Array.isArray(st.log)?st.log.length:0;}catch(e){return 0;}})();
     const stampTotal=(state&&state.rewards)?Object.keys(state.rewards).length:0;
-    const uid=String(identityId()||'0000').slice(-4).toUpperCase();
+    const uid=(String(identityId()||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(-4))||'0000';
     const forms=LOOKS.filter(l=>unlocked(l.id)).length;
     if(view==='events'){
       stats.innerHTML=`<div class="stat-box"><span class="stat-label">TOTAL</span><span class="stat-value">${(nearEvents||[]).length}</span></div><div class="stat-box"><span class="stat-label">STAMPS</span><span class="stat-value">${String(stampTotal).padStart(2,'0')}</span></div>`;
@@ -2239,11 +2240,12 @@ function startLocate(){
     }catch(e){/* IP 定位也不可用 */}
     geo.state='failed';render();
     updateWbLocTexts();
-    toast(err&&String(err.message).includes('PERMISSION_DENIED')?'定位权限未开启。开启后点「刷新」':'定位失败。点「刷新」重试');
+    /* 定位失败提示 60s 节流：避免反复定位把操作类 toast 顶掉 */
+    if(Date.now()-(locateToastAt||0)>60000){locateToastAt=Date.now();toast(err&&String(err.message).includes('PERMISSION_DENIED')?'定位权限未开启。开启后点「刷新」':'定位失败。点「刷新」重试');}
   });
 }
 /* ---------- 位置监听：位移超阈值自动刷新附近内容 ---------- */
-let geoWatchId=null;
+let geoWatchId=null,locateToastAt=0;
 let lastRefreshPos=null;   // 上次触发刷新时的坐标（GCJ-02）
 let lastRefreshTime=0;     // 上次触发刷新的时间戳
 const REFRESH_MOVE_METERS=100;    // 位移阈值（GPS 抖动通常 ±5-20 米，100 米=真正的位置变化）
@@ -2483,6 +2485,10 @@ function spotRow(s){
 function hallCard(e,opts={}){
   const isCur=eventData&&e.key===eventData.key;
   let distM=Number.isFinite(e.distanceMeters)?e.distanceMeters:null;
+  if(distM==null&&eventData&&e.key===eventData.key&&geo.state==='ok'&&geo.coords&&SPOTS.length){
+    const ds=SPOTS.filter(sp=>Number.isFinite(sp.lng)).map(sp=>haversineMeters(geo.coords,{lng:sp.lng,lat:sp.lat}));
+    if(ds.length)distM=Math.round(Math.min(...ds));
+  }
   const inRange=geo.state==='ok'&&distM!=null&&distM<=500;
   const curN=isCur?count():0;
   const curT=isCur?SPOTS.length:((e.spots&&e.spots.length)||e.spotCount||0);
@@ -2523,8 +2529,9 @@ function renderEventsList(){
   const showFeature=Boolean(eventData&&eventsFilter==='all'&&!q);
   if(showFeature)live=live.filter(e=>!(eventData&&e.key===eventData.key));
   const feature=showFeature?`<div class="hall-sec-tag mono">WEEKLY FEATURE</div>${hallCard(eventData,{feature:true,hot:true})}`:'';
-  const liveSec=`<div class="hall-sec-tag mono">LIVE NOW</div><span class="hall-sec-cn">正在进行</span><div class="hall-line"></div>
-${live.length?live.map(e=>hallCard(e)).join(''):'<p class="about-list">没有匹配的活动。</p>'}`;
+  const emptyMsg=q?'没有匹配的活动。':(eventsFilter==='live'?'附近暂无进行中的活动，切到「全部活动」看看。':'');
+const liveSec=`<div class="hall-sec-tag mono">LIVE NOW</div><span class="hall-sec-cn">正在进行</span><div class="hall-line"></div>
+${live.length?live.map(e=>hallCard(e)).join(''):(showFeature?'':`<p class="about-list">${emptyMsg}</p>`)}`;
   const historySec=(past.length&&eventsFilter!=='mine')?`<div class="hall-sec-tag mono">HISTORY</div><span class="hall-sec-cn">往期回顾</span><div class="hall-line"></div>
 ${past.map(e=>hallCard(e)).join('')}`:'';
   el.innerHTML=localize(feature+liveSec+historySec);
@@ -2564,9 +2571,11 @@ function renderEventPage(){
   const spots=isCur?SPOTS:(E.spots||[]);
   const pastE=!isCur?(pastCollection||[]).find(c=>c.eventKey===E.key):null;
   const doneMap={};
-  if(isCur){for(const sp of spots)doneMap[sp.key]=Boolean(state.rewards[sp.id]);}
+  /* 当前活动 SPOTS 用 sp.id（rewards 键），非当前活动接口点位用 sp.key */
+  const keyOf=sp=>isCur?sp.id:sp.key;
+  if(isCur){for(const sp of spots)doneMap[sp.id]=Boolean(state.rewards[sp.id]);}
   else if(pastE){const ks=new Set((pastE.spots||[]).map(x=>x.key));for(const sp of spots)doneMap[sp.key]=ks.has(sp.key);}
-  const doneN=spots.filter(sp=>doneMap[sp.key]).length;
+  const doneN=spots.filter(sp=>doneMap[keyOf(sp)]).length;
   const total=spots.length;
   const ended=E.active===false;
   /* GO 距离门槛：500m 内可打卡 */
@@ -2589,7 +2598,7 @@ function renderEventPage(){
     :`<button type="button" class="evt-check" data-action="evt-checkin" data-event="${esc(E.key)}" data-spot="${esc(nextSpot.key)}">📍 立即打卡</button>`;
   else checkBtn=`<button type="button" class="evt-check end" disabled>到范围内打卡${distM!=null?' · '+fmtDistance(distM):''}</button>`;
   const slots=spots.map((sp,i)=>{
-    const done=doneMap[sp.key];
+    const done=doneMap[keyOf(sp)];
     return `<div class="evt-slot${done?' done':''}" title="${esc(sp.name)}"><span class="evt-slot-no mono">${i+1}</span><span class="evt-slot-icon">${done?pixIcon('check'):'+'}</span><span class="evt-slot-name">${esc(String(sp.name).slice(0,6))}</span></div>`;
   }).join('');
   const heroPet=spots.length?petSVG(spots[0].key,(spots[0].look||null)):petSVG(state.equipped,null);
@@ -2916,7 +2925,7 @@ function albumBody(){
   if(mineStatus==='error')return `<div class="empty-state">加载失败<br><button type="button" class="live-status-btn" data-action="mine-refresh">重试</button></div>`;
   if(!minePhotos||!minePhotos.length)return `<div class="empty-state">END_OF_ARCHIVE<br>KEEP WALKING TO CAPTURE MORE...</div>`;
   const photos=albumFilter==='all'?minePhotos:minePhotos.filter(p=>p.eventKey===albumFilter);
-  if(!photos.length)return `<div class="empty-state">NO_FILES_HERE<br>这场活动还没有你的照片</div>`;
+  if(!photos.length)return `<div class="empty-state">NO_FILES_HERE<br>本场还没有你的照片</div>`;
   /* 按活动分组（无活动归属的归到 LATEST） */
   const groups={};
   for(const p of photos){
@@ -2933,15 +2942,20 @@ function albumBody(){
 function renderAlbumBody(){
   const el=document.getElementById('album-body');
   if(el)el.innerHTML=localize(albumBody());
+  const fl=document.getElementById('album-filters');
+  if(fl)fl.innerHTML=localize(albumFilterMarkup());
   const stat=document.getElementById('album-photo-count');
   if(stat)stat.textContent=minePhotos?minePhotos.length:'--';
 }
-function renderAlbumPage(){
-  /* 活动筛选标签：ALL + 出现在我照片里的活动（真筛选） */
+function albumFilterMarkup(){
+  /* 活动筛选标签：ALL + 出现在我照片里的活动（真筛选）；照片异步加载后由 renderAlbumBody 刷新 */
   const evs=[...new Set((minePhotos||[]).map(p=>p.eventKey).filter(Boolean))];
   const tags=[`<button type="button" class="filter-tag${albumFilter==='all'?' active':''}" data-action="album-filter" data-filter="all">ALL_FILES</button>`]
     .concat(evs.map(k=>`<button type="button" class="filter-tag${albumFilter===k?' active':''}" data-action="album-filter" data-filter="${esc(k)}">📍 ${esc(String(eventNameFor(k)).slice(0,12))}</button>`));
-  return `<div class="filter-scroll">${tags.join('')}</div><div id="album-body">${albumBody()}</div>`;
+  return tags.join('');
+}
+function renderAlbumPage(){
+  return `<div class="filter-scroll" id="album-filters">${albumFilterMarkup()}</div><div id="album-body">${albumBody()}</div>`;
 }
 
 function mineCell(p){
@@ -3333,7 +3347,7 @@ function showCheckin(id){
   const frame=mode==='api'
     ?`<div class="checkin-frame"><span class="frame-note mono">${devSkipGeo?'DEV MODE<br>跳过定位校验':'GEO CHECK-IN<br>'+s.radiusMeters+'m'}</span></div>`
     :`<div class="checkin-frame">${qrSVG()}<span class="frame-note mono">SCAN AT VENUE<br>现场扫码处</span></div>`;
-  modal(`<p class="modal-eyebrow mono">CHECK-IN / SPOT ${s.number}</p><h2 id="dialog-title">到达${esc(s.name)}</h2>${frame}<p class="modal-copy">${s.zone?`区域：${esc(s.zone)}<br>`:''}点位造型：<strong>${esc(s.reward)}</strong><br>到达：${esc(s.line)}</p><div class="modal-actions"><button class="btn btn-primary" id="redeem-btn" data-action="redeem" data-spot="${id}" type="button">打卡领取</button></div>`,'checkin');
+  modal(`<p class="modal-eyebrow mono">CHECK-IN / SPOT ${s.number}</p><h2 id="dialog-title">到达${esc(s.name)}</h2>${frame}<p class="modal-copy">${s.zone?`区域：${esc(s.zone)}<br>`:''}点位造型：<strong>${esc(s.reward)}</strong><br>到达：${esc(s.line)}</p><p class="input-error" id="checkin-error" role="alert" style="min-height:14px;margin:0"></p><div class="modal-actions"><button class="btn btn-primary" id="redeem-btn" data-action="redeem" data-spot="${id}" type="button">打卡领取</button></div>`,'checkin');
 }
 function redeemOffline(id){
   const s=SPOTS.find(s=>s.id===id);if(!s)return;
@@ -3617,7 +3631,7 @@ function handleAction(button){
       const name=button.dataset.name||'OUTIE';
       const url=location.origin+location.pathname+'#/event';
       if(navigator.share){navigator.share({title:name,text:'一起来 '+name+' 打卡吧',url}).catch(()=>{});}
-      else{try{navigator.clipboard.writeText(url);}catch(e){}toast('链接已复制。');}
+      else{try{const wp=navigator.clipboard.writeText(url);if(wp&&wp.catch)wp.catch(()=>{});}catch(e){}toast('链接已复制。');}
       break;
     }
     case 'evt-checkin':(async()=>{
@@ -3727,6 +3741,7 @@ function handleAction(button){
     }
     case 'wb-promo':{
       const ev=button.dataset.event;
+      toast('选择一张照片，作为活动宣传照…');
       const input=document.createElement('input');
       input.type='file';input.accept='image/*';input.setAttribute('capture','environment');input.style.display='none';
       input.addEventListener('change',async()=>{
@@ -3910,7 +3925,7 @@ document.addEventListener('submit',async event=>{
 dialog.addEventListener('click',event=>{if(postingPhoto)return;if(event.target===dialog){const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)closeModal();}});
 dialog.addEventListener('cancel',event=>{if(postingPhoto){event.preventDefault();return;}event.preventDefault();closeModal();});
 window.addEventListener('resize',()=>{if(view==='explore'&&realMap)engine_resizeSafe();});
-window.addEventListener('hashchange',()=>{if(!state.name)return;closeModal();view=viewFromHash();render();});
+window.addEventListener('hashchange',()=>{closeModal();view=viewFromHash();render();});
 window.addEventListener('storage',event=>{if(mode==='offline'&&event.key===STORAGE_KEY){state=loadState();closeModal();render();}});
 /* 邀请归因：落地 URL 带 ?ref=<宠物id> 时记下，领养时上报（双方各得饲料） */
 function captureRef(){
