@@ -1081,7 +1081,7 @@ function setLang(lang){
   location.reload();
 }
 /* 错误文案：业务提示原样给用户；技术黑话只进日志，界面上说人话 */
-const ERR_SAFE_KEYS=['需到点位','获取定位失败','饲料不够','只有发布者','匿名打卡24小时后无法删除','每日最多只能上传','距拍照地点','无权删除这张照片','已被注册','密码至少','邮箱格式','用户名或密码错误','用户名和密码都是必需的','设备已注册','照片文件为空','照片数据校验失败','照片源文件已丢失','GitHub账号已绑定其他用户','未能获取你的位置','请先领养宠物','评论发送过快','同步过于频繁','步数数据无效','绑定码错误或已过期'];
+const ERR_SAFE_KEYS=['需到点位','距活动点位','获取定位失败','饲料不够','只有发布者','匿名打卡24小时后无法删除','每日最多只能上传','距拍照地点','无权删除这张照片','已被注册','密码至少','邮箱格式','用户名或密码错误','用户名和密码都是必需的','设备已注册','照片文件为空','照片数据校验失败','照片源文件已丢失','GitHub账号已绑定其他用户','未能获取你的位置','请先领养宠物','评论发送过快','同步过于频繁','步数数据无效','绑定码错误或已过期'];
 function errText(error){
   const raw=error&&error.message?String(error.message):'';
   if(raw)console.warn('[outie api]',raw);
@@ -2195,9 +2195,13 @@ function renderEventsList(){
     const src=(nearEvents||[]).find(e=>e.key===c.eventKey);
     return src||{key:c.eventKey,name:c.eventName||'往期活动',subtitle:'',createdAt:'',spots:c.spots||[],active:false};
   });
-  const showFeature=Boolean(eventData&&eventsFilter==='all'&&!q);
-  if(showFeature)live=live.filter(e=>!(eventData&&e.key===eventData.key));
-  const feature=showFeature?`<div class="hall-sec-tag mono">WEEKLY FEATURE</div>${hallCard(eventData,{feature:true,hot:true})}`:'';
+  /* 精选位只推 100km 内最近的进行中活动，避免把外地演示活动顶到用户首页 */
+  const featureEv=(geo.state==='ok'&&geo.coords&&(nearEvents||[]).some(e=>Number.isFinite(e.distanceMeters)&&e.distanceMeters<=100000))
+    ?(nearEvents||[]).slice().sort((a,b)=>(a.distanceMeters||1e12)-(b.distanceMeters||1e12))[0]
+    :((geo.state==='ok'&&geo.coords)?null:eventData);
+  const showFeature=Boolean(featureEv&&eventsFilter==='all'&&!q);
+  if(showFeature)live=live.filter(e=>e.key!==featureEv.key);
+  const feature=showFeature?`<div class="hall-sec-tag mono">WEEKLY FEATURE</div>${hallCard(featureEv,{feature:true,hot:true})}`:'';
   const emptyMsg=q?'没有匹配的活动。':(eventsFilter==='live'?'附近暂无进行中的活动，切到「全部活动」看看。':'');
 const liveSec=`<div class="hall-sec-tag mono">LIVE NOW</div>
 ${live.length?live.map(e=>hallCard(e)).join(''):(showFeature?'':`<p class="about-list">${emptyMsg}</p>`)}`;
@@ -2398,7 +2402,7 @@ async function loadNearEvents(force){
   nearEventsStatus='loading';
   if(view==='explore')renderNearGrid();if(view==='events')renderEventsList();
   try{
-    const data=await apiFetch(`/outie/events/nearby?lat=${geo.coords.lat}&lng=${geo.coords.lng}&radius=1000`);
+    const data=await apiFetch(`/outie/events/nearby?lat=${geo.coords.lat}&lng=${geo.coords.lng}&radius=5000000`);
     nearEvents=Array.isArray(data&&data.events)?data.events:[];
     nearEventsStatus='ready';
   }catch(error){nearEventsStatus='error';}
@@ -2516,9 +2520,11 @@ async function confirmDeletePhoto(id,anon){
     closeModal();
     minePhotos=null;mineStatus='idle';mineAlbumIdx=null;
     nearPhotos=null;nearStatus='idle';
+    eventWallPhotos=null;eventWallKey=null;
     toast('已删除。');
     if(view==='mine')loadMinePhotos(true);
     else if(view==='explore')loadNearStream(true);
+    else if(view==='event')loadEventWall(true);
     render();
   }catch(error){toast('删除失败：'+errText(error));}
 }
@@ -3273,6 +3279,7 @@ function handleAction(button){
       })();
       break;
     }
+    case 'photo-del':deletePhotoItem(button.dataset);break;
     case 'photo-del-confirm':{button.disabled=true;confirmDeletePhoto(button.dataset.photo,button.dataset.anon);break;}
     case 'mine-refresh':minePhotos=null;mineStatus='idle';mineAlbumIdx=null;loadMinePhotos(true);break;
     case 'album-open':mineAlbumIdx=Number(button.dataset.idx);renderMineGrid();break;
