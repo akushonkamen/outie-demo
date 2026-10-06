@@ -3168,13 +3168,14 @@ function renderWorkbench(){
   /* 重建前保留商家已输入的名称/介绍/上架开关，防止点定位按钮后丢失 */
   const prevName=document.getElementById('wb-name'),prevSub=document.getElementById('wb-subtitle'),prevActive=document.getElementById('wb-active'),prevVoucher=document.getElementById('wb-voucher');
   if(wbView==='dash'){renderWbDash(wrap);return;}
-  wrap.innerHTML=`<div class="wb-head"><div><p class="mono wb-mode">ORGANIZER_MODE_ENABLED</p><h3>创建新活动</h3></div><button type="button" class="btn btn-dark" style="width:auto;min-height:0;padding:8px 12px;font-size:11px" data-action="wb-dash">← 返回账本</button></div><form id="wb-form"><input id="wb-name" class="name-input" style="min-height:0;padding:10px 12px;font-size:13px;margin-bottom:8px" placeholder="活动名称" maxlength="20" value="${esc(prevName?prevName.value:'')}"><input id="wb-subtitle" class="name-input" style="min-height:0;padding:10px 12px;font-size:13px;margin-bottom:10px" placeholder="一句话介绍" maxlength="30" value="${esc(prevSub?prevSub.value:'')}">${spots.map(row).join('')}<div style="margin:4px 0 8px">${spots.length<10?`<button type="button" class="live-status-btn" data-action="wb-add">+ 加点位</button>`:'<span class="about-list mono" style="margin:0">最多 10 个点位。</span>'}</div><label class="name-label" style="margin:10px 0 4px"><span style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="wb-active"${prevActive?(prevActive.checked?' checked':''):' checked'}>创建后立即上架</span></label><label class="name-label" style="margin:4px 0"><span style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="wb-voucher"${prevVoucher&&prevVoucher.checked?' checked':''}>启用到店凭证</span></label><div class="modal-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary"${wbBusy?' disabled':''}>发布活动</button></div></form><div class="setting-section"><h3>我发布的活动</h3><div id="wb-my-events"><p class="about-list">加载中…</p></div></div>`;
+  wrap.innerHTML=`<div class="wb-head"><div><p class="mono wb-mode">ORGANIZER_MODE_ENABLED</p><h3>创建新活动</h3></div><button type="button" class="btn btn-dark" style="width:auto;min-height:0;padding:8px 12px;font-size:11px" data-action="wb-dash">← 返回账本</button></div><form id="wb-form"><input id="wb-name" class="name-input" style="min-height:0;padding:10px 12px;font-size:13px;margin-bottom:8px" placeholder="活动名称" maxlength="20" value="${esc(prevName?prevName.value:'')}"><input id="wb-subtitle" class="name-input" style="min-height:0;padding:10px 12px;font-size:13px;margin-bottom:10px" placeholder="一句话介绍" maxlength="30" value="${esc(prevSub?prevSub.value:'')}">${spots.map(row).join('')}<div style="margin:4px 0 8px">${spots.length<10?`<button type="button" class="live-status-btn" data-action="wb-add">+ 加点位</button>`:'<span class="about-list mono" style="margin:0">最多 10 个点位。</span>'}</div><label class="name-label" style="margin:10px 0 4px"><span style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="wb-active"${prevActive?(prevActive.checked?' checked':''):' checked'}>创建后立即上架</span></label><label class="name-label" style="margin:4px 0"><span style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="wb-voucher"${prevVoucher&&prevVoucher.checked?' checked':''}>启用到店凭证</span></label><p class="input-error" id="wb-error" role="alert" style="min-height:14px;margin:8px 0 0"></p><div class="modal-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary"${wbBusy?' disabled':''}>发布活动</button></div></form><div class="setting-section"><h3>我发布的活动</h3><div id="wb-my-events"><p class="about-list">加载中…</p></div></div>`;
   loadMyEventsList();
 }
+function wbError(msg){toast(msg);const el=document.getElementById('wb-error');if(el)el.textContent=msg;}
 async function submitWorkbench(){
   if(wbBusy)return;
   const name=document.getElementById('wb-name').value.trim();
-  if(!name){toast('填写活动名称。');return;}
+  if(!name){wbError('填写活动名称。');return;}
   const subtitle=document.getElementById('wb-subtitle').value.trim();
   const active=document.getElementById('wb-active').checked;
   const voucherEnabled=Boolean(document.getElementById('wb-voucher')&&document.getElementById('wb-voucher').checked);
@@ -3187,7 +3188,7 @@ async function submitWorkbench(){
     const lat=sp.setAt?sp.lat:(located?Number(geo.coords.lat.toFixed(6)):null);
     if(!Number.isFinite(lng)||!Number.isFinite(lat)){
       wbBusy=false;
-      toast('点位 '+(i+1)+' 未定位');
+      wbError('点位 '+(i+1)+' 未定位：点该行的「用我的位置」锁定坐标');
       return;
     }
     spotsPayload.push({
@@ -3198,14 +3199,19 @@ async function submitWorkbench(){
   }
   const payload={name,subtitle,active,voucherEnabled,spots:spotsPayload};
   wbBusy=true;
+  const pubBtn=document.querySelector('#wb-form button[type="submit"]');
+  if(pubBtn){pubBtn.disabled=true;pubBtn.textContent='发布中…';}
   try{
     await apiFetch('/outie/events',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     wbBusy=false;wbSpots=null;myEvents=null;myEventsStatus='idle';
-    toast('活动已发布'+(active?'并上架。':'（未上架）。'));
+    /* 新活动立即出现在各页：清大厅/地图/首页推荐缓存 */
+    nearEvents=null;nearEventsStatus='idle';homeRec=null;homeRecList=null;homeRecStatus='idle';eventWallKey=null;eventWallPhotos=null;
+    toast('活动已发布'+(active?'并上架。':'（未上架）。')+'回到账本。');
+    wbView='dash';
     render();
     const wrap=document.getElementById('wb-my-events');
-    if(wrap)loadMyEventsList();
-  }catch(error){wbBusy=false;toast('发布失败：'+errText(error));}
+    if(wrap)loadMyEventsList(true);
+  }catch(error){wbBusy=false;const pubBtn2=document.querySelector('#wb-form button[type="submit"]');if(pubBtn2){pubBtn2.disabled=false;pubBtn2.textContent='发布活动';}wbError('发布失败：'+errText(error));}
 }
 async function refreshAuthState(){
   authUser=null;
@@ -3720,7 +3726,7 @@ function handleAction(button){
     }
     case 'map-refresh':geo.state='idle';nearPhotos=null;nearStatus='idle';mapRealFailed=false;stopGeoWatch();destroyRealMap();render();startLocate();break;
     case 'photo-new':{let pe=null;try{pe=button.dataset.event?JSON.parse(button.dataset.event):null;}catch(e){}startPhotoPost(pe);break;}
-    case 'dev-toggle':devMode=!devMode;try{localStorage.setItem('outie.dev-mode',devMode?'on':'off');}catch(e){}render();toast(devMode?'活动方模式已开启。':'活动方模式已关闭。');break;
+    case 'dev-toggle':devMode=!devMode;if(devMode)wbView='dash';try{localStorage.setItem('outie.dev-mode',devMode?'on':'off');}catch(e){}render();toast(devMode?'活动方模式已开启。':'活动方模式已关闭。');break;
     case 'wb-use-loc':{
       const i=Number(button.dataset.idx);
       if(geo.state!=='ok'||!geo.coords){
