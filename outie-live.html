@@ -1185,6 +1185,18 @@ function applyEvent(ev){
   }));
   rebuildLooks();
 }
+/* 发布/上架/下架/校准后统一刷新活动上下文：当前活动重取，附近列表/首页推荐/详情页/照片墙/我的活动缓存全部作废 */
+async function refreshEventContext(){
+  nearEvents=null;nearEventsStatus='idle';
+  homeRec=null;homeRecList=null;homeRecStatus='idle';
+  eventWallPhotos=null;eventWallKey=null;evtDetail=null;pastCollection=[];
+  myEvents=null;myEventsStatus='idle';
+  try{
+    const cur=await probeApi();
+    if(cur&&cur.event)applyEvent(cur.event);
+    else{eventData=null;SPOTS=[];rebuildLooks();}
+  }catch(e){}
+}
 async function adoptApi(name,invitedBy){
   const body={name};
   if(invitedBy)body.invitedBy=String(invitedBy);
@@ -3252,8 +3264,8 @@ async function submitWorkbench(){
   try{
     await apiFetch('/outie/events',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     wbBusy=false;wbSpots=null;myEvents=null;myEventsStatus='idle';
-    /* 新活动立即出现在各页：清大厅/地图/首页推荐缓存 */
-    nearEvents=null;nearEventsStatus='idle';homeRec=null;homeRecList=null;homeRecStatus='idle';eventWallKey=null;eventWallPhotos=null;
+    /* 新活动立即出现在各页：刷新当前活动上下文与各页缓存 */
+    await refreshEventContext();
     toast('活动已发布'+(active?'并上架。':'（未上架）。')+'回到账本。');
     wbView='dash';
     render();
@@ -3811,8 +3823,7 @@ function handleAction(button){
       button.disabled=true;button.textContent='校准中…';
       try{
         await apiFetch('/outie/events/'+encodeURIComponent(ev),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({calibrate:{lat:Number(geo.coords.lat.toFixed(6)),lng:Number(geo.coords.lng.toFixed(6))}})});
-        nearEvents=null;nearEventsStatus='idle';homeRec=null;eventWallPhotos=null;eventWallKey=null;evtDetail=null;pastCollection=[];myEvents=null;myEventsStatus='idle';
-        try{const cur=await probeApi();if(cur&&cur.event)applyEvent(cur.event);}catch(e){}
+        await refreshEventContext();
         closeModal();
         toast('点位已校准到当前位置。正在重新打卡…');
         checkinApi(sp,ev);
@@ -3832,7 +3843,7 @@ function handleAction(button){
     }
     case 'wb-active-toggle':{
       apiFetch('/outie/events/'+encodeURIComponent(button.dataset.event),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({active:button.dataset.to==='1'})})
-        .then(()=>{toast(button.dataset.to==='1'?'已上架。':'已下架。');loadMyEventsList(true);})
+        .then(async()=>{toast(button.dataset.to==='1'?'已上架。':'已下架。');await refreshEventContext();loadMyEventsList(true);render();})
         .catch(err=>{wbError('操作失败：'+errText(err));});
       break;
     }
