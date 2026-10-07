@@ -1742,8 +1742,8 @@ function render(){
   if(view==='events'&&mode==='api'){loadNearEvents(false);if(nearEventsStatus==='ready')renderEventsList();}
   if(mode==='api'&&geo.state==='ok'&&nearEventsScope==='all'&&nearEventsStatus!=='loading')loadNearEvents(true);
   if(view==='discover'&&mode==='api'){
-    if(!discoverEnterLoaded){discoverEnterLoaded=true;loadNearEvents(true);loadNearStream(true);}
-    else{if(nearEventsStatus==='idle')loadNearEvents(false);if(nearStatus==='idle')loadNearStream(false);}
+    if(!discoverEnterLoaded){discoverEnterLoaded=true;loadNearEvents(true);}
+    else if(nearEventsStatus==='idle')loadNearEvents(false);
     initAtlasMap();
     loadMyEventsList(false).then(()=>{if(view==='discover')refreshAtlasData();}).catch(()=>{});
     ensureUserCity().then(()=>{ensureEventCities().then(()=>{if(view==='discover')refreshAtlasData();});});
@@ -2551,32 +2551,10 @@ function eventDist(e){
   if(geo.state==='ok'&&geo.coords&&e&&e.center&&Number.isFinite(e.center.lng))return Math.round(haversineMeters(geo.coords,e.center));
   return null;
 }
-function fmtAgo(iso){
-  const t=Date.parse(iso);
-  if(!Number.isFinite(t))return '';
-  const m=Math.max(0,Math.round((Date.now()-t)/60000));
-  if(m<1)return '刚刚';
-  if(m<60)return m+' 分钟前';
-  const h=Math.floor(m/60);
-  if(h<24)return h+' 小时前';
-  return Math.floor(h/24)+' 天前';
-}
 function myStampTotal(){
   let n=(state&&state.rewards)?Object.keys(state.rewards).length:0;
   for(const c of (pastCollection||[]))n+=(c.spots&&c.spots.length)||0;
   return n;
-}
-function iHaveStampedEvent(key){
-  if(!key)return false;
-  if(eventData&&eventData.key===key&&count()>0)return true;
-  return (pastCollection||[]).some(c=>c.eventKey===key);
-}
-function pulseLocName(p){
-  if(p&&p.eventKey){
-    const n=eventNameFor(p.eventKey);
-    if(n&&n!=='LATEST')return n;
-  }
-  return '现场';
 }
 /* ---------- 拍摄页（PAGE: CAPTURE 取景器） ---------- */
 let captureStream=null,captureReady=false,captureCity='';
@@ -2685,7 +2663,7 @@ function renderDiscover(){
   if(mode!=='api')return offlineNote()+'<p class="about-list">连接后可看正在发生的活动与现场。</p>';
   return `<section class="dv-sec"><div class="dv-sec-head"><span class="dv-sec-title">PIXEL TREASURE MAP / 藏宝图</span></div><div class="dv-city-row" id="dv-city-row"><span class="dv-sec-title" style="opacity:.5;align-self:center">CITY / 城市</span>${citySelectHTML()}</div><div id="dv-atlas" style="margin-top:8px">${atlasSkeletonHTML()}</div></section>
 <section class="dv-sec"><div class="dv-sec-head"><span class="dv-sec-title">LIVE NOW / 正在发生</span><button type="button" class="dv-see-all" data-action="nav" data-view="events">SEE ALL →</button></div><div class="dv-scroll" id="dv-live">${liveCardsInner()}</div></section>
-<section class="dv-sec"><div class="dv-sec-head"><span class="dv-sec-title">CITY PULSE / 城市脉搏</span></div><div id="dv-pulse" style="padding:0 2px">${pulseInner()}</div></section>`;
+`;
 }
 /* CITY ATLAS：AMap JS 渲染（位置由 SDK 保证）+ zine 处理层（滤镜只作用于瓦片画布） */
 let atlasMap=null,atlasAmapMarkers=[],atlasSel=0,atlasEvKeys=[],atlasMapPending=false;
@@ -2887,27 +2865,10 @@ function liveCardsInner(){
 </button>`;
   }).join('');
 }
-function pulseInner(){
-  if(nearStatus==='loading'||nearStatus==='idle')return '<p class="about-list mono" style="padding:8px 0">收听中…</p>';
-  if(nearStatus==='nolocation')return '<p class="about-list mono" style="padding:8px 0">开启定位后，这里显示身边的现场记录。</p>';
-  if(nearStatus==='error')return '<p class="about-list mono" style="padding:8px 0">加载失败。<button type="button" class="live-status-btn" data-action="near-refresh">重试</button></p>';
-  if(!(nearPhotos||[]).length)return `<p class="about-list mono" style="padding:8px 0">附近还没有现场记录。</p><div class="modal-actions"><button type="button" class="btn btn-dark" style="width:auto" data-action="nav" data-view="capture">去拍第一张 →</button></div>`;
-  const total=myStampTotal();
-  return nearPhotos.slice(0,10).map(p=>{
-    const stamped=iHaveStampedEvent(p.eventKey);
-    return `<div class="pulse-item">
-<button type="button" class="pulse-thumb" data-action="photo-open" data-photo="${esc(p.id)}" aria-label="查看照片"><img src="${esc(photoAbsUrl(p.url))}" alt="" loading="lazy"></button>
-<div class="pulse-body"><div class="pulse-meta">${fmtAgo(p.createdAt)} / ${esc(pulseLocName(p))}</div><div class="pulse-text">${esc(String(p.caption||'').trim()||'现场照片')}</div><div class="pulse-user">OUTIE 现场</div></div>
-<div class="pulse-stamp${stamped?' on':''}">${stamped?'STAMPED<br>#'+String(total).padStart(3,'0'):'NOT<br>FOUND'}</div>
-</div>`;
-  }).join('');
-}
 function renderDiscoverDyn(){
   refreshAtlasData();
   const l=document.getElementById('dv-live');
   if(l)l.innerHTML=localize(liveCardsInner());
-  const p=document.getElementById('dv-pulse');
-  if(p)p.innerHTML=localize(pulseInner());
 }
 function renderNearGrid(){
   /* Tab 高亮、计数行、操作按钮、内容整体同步：活动↔照片切换时 #near-body 结构不同
