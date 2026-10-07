@@ -2657,7 +2657,7 @@ function renderDiscover(){
 }
 /* CITY ATLAS：AMap JS 渲染（位置由 SDK 保证）+ zine 处理层（滤镜只作用于瓦片画布） */
 let atlasMap=null,atlasAmapMarkers=[],atlasSel=0,atlasEvKeys=[],atlasMapPending=false;
-let atlasCitySel='near',evtCityCache={},evtCityFetch={},userCity='',atlasInfoHidden=false,discoverEnterLoaded=false;
+let atlasCitySel='near',evtCityCache={},evtCityFetch={},userCity='',atlasInfoHidden=true,discoverEnterLoaded=false;
 function ensureEventCities(){
   const evs=(nearEvents||[]).filter(e=>e.active!==false&&e.center&&Number.isFinite(e.center.lng)&&!evtCityCache[e.key]&&!evtCityFetch[e.key]);
   if(!evs.length)return Promise.resolve();
@@ -2747,8 +2747,12 @@ function buildAtlasOverlay(){
     atlasMap.add(route);
     atlasAmapMarkers._route=route;
   }
-  if(atlasEvKeys.join()!==evs.map(e=>e.key).join()){
+  const keysChanged=atlasEvKeys.join()!==evs.map(e=>e.key).join();
+  if(keysChanged){
     try{atlasMap.setFitView(atlasAmapMarkers.slice(),false,[36,36,36,40],15);}catch(e){}
+    /* 只有活动集合变化（入页刷新/切城市）才收起卡片；同集合的数据刷新不打断用户 */
+    atlasInfoHidden=true;
+    if(atlasSel>=evs.length)atlasSel=0;
   }
   atlasEvKeys=evs.map(e=>e.key);
   atlasRefreshSel();
@@ -3597,7 +3601,7 @@ function handleAction(button){
     case 'map-filter':mapFilter=button.dataset.filter||'all';render();break;
     case 'atlas-city':{
       const c=button.dataset.city||'near';
-      if(c!==atlasCitySel){atlasCitySel=c;atlasSel=0;atlasInfoHidden=false;refreshAtlasData(true);}
+      if(c!==atlasCitySel){atlasCitySel=c;atlasSel=0;atlasInfoHidden=true;refreshAtlasData(true);}
       break;
     }
     case 'atlas-detail':{
