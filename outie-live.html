@@ -862,6 +862,11 @@ body.evt-detail-page main{padding-bottom:120px}
 .evt-bar-tag{background:var(--ink);color:var(--paper);font-size:11px;font-weight:900;letter-spacing:.1em;padding:7px 10px}
 .evt-hero{position:relative;padding:18px;display:flex;flex-direction:column;align-items:center;gap:12px;overflow:hidden}
 .evt-hero::before{content:"";position:absolute;inset:0;background-image:radial-gradient(circle,rgba(26,26,26,.12) 1px,transparent 1px);background-size:10px 10px;pointer-events:none}
+.evt-hero.has-cover{overflow:hidden}
+.evt-hero-cover{position:absolute;inset:0;display:block}
+.evt-hero-cover img{width:100%;height:100%;object-fit:cover;filter:grayscale(.35) contrast(1.05);opacity:.9}
+.evt-hero.has-cover .evt-hero-star{background:var(--paper);box-shadow:2px 2px 0 var(--ink)}
+.evt-hero.has-cover .evt-hero-progress{background:var(--paper);border:2px solid var(--ink);padding:4px 8px}
 .evt-hero-star{position:absolute;top:12px;right:12px;width:40px;height:40px;border:3px solid var(--ink);border-radius:50%;background:var(--pink);display:grid;place-items:center;z-index:2}
 .evt-hero-star .icon{width:18px;height:18px}
 .evt-hero-pet{width:150px;height:150px;display:block;position:relative}
@@ -903,9 +908,32 @@ body.evt-detail-page main{padding-bottom:120px}
 .evt-about{margin:14px 2px}
 .evt-about-text{font-size:12px;font-weight:700;line-height:1.7;margin-bottom:8px}
 .chk-calib{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+/* ===== CITY ATLAS 藏宝图 V2 ===== */
+.atl{position:relative}
+.atl-frame{position:relative;height:230px;border:3px solid var(--ink);box-shadow:var(--hard);overflow:hidden;background:var(--paper)}
+.atl-base{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.14) brightness(1.08) sepia(.14)}
+.atl-fallback .atl-base{display:none}
+.atl-fallback .atl-frame::before{content:"";position:absolute;inset:0;background-image:radial-gradient(var(--ink) 1px,transparent 0);background-size:6px 6px;opacity:.14}
+.atl-dots{position:absolute;inset:0;background-image:radial-gradient(var(--ink) .8px,transparent 0);background-size:5px 5px;opacity:.1;pointer-events:none}
+.atl-route{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.atl-route line{stroke:var(--pink);stroke-width:2;stroke-dasharray:5 4;vector-effect:non-scaling-stroke;filter:drop-shadow(0 0 2px rgba(255,135,195,.8))}
+.atl-me{position:absolute;transform:translate(-50%,-50%);color:var(--blue);font-size:15px;font-weight:900;text-shadow:0 0 3px #fff;pointer-events:none}
+.atl-pin{position:absolute;transform:translate(-50%,-100%);background:none;border:0;padding:2px 4px;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px}
+.atl-x{color:var(--ink);font-size:17px;font-weight:900;line-height:1;text-shadow:0 0 3px rgba(255,255,255,.9)}
+.atl-pin.sel .atl-x{color:var(--pink);font-size:21px;filter:drop-shadow(0 0 3px rgba(255,135,195,.9))}
+.atl-name{font-size:8px;font-weight:900;background:#fff;border:1px solid var(--ink);padding:0 3px;white-space:nowrap}
+.atl-pin.sel .atl-name{background:var(--pink);color:var(--ink)}
+.atl-compass{position:absolute;top:6px;left:8px;font-size:9px;font-weight:900;background:#fff;border:2px solid var(--ink);padding:1px 4px;letter-spacing:.1em}
+.atl-stamp{position:absolute;bottom:6px;left:8px;font-size:8px;font-weight:900;color:var(--pink);border:2px dashed var(--pink);border-radius:50%;width:44px;height:44px;display:grid;place-items:center;text-align:center;transform:rotate(-14deg);opacity:.85;background:rgba(255,255,255,.7)}
+.atl-title{position:absolute;top:6px;right:8px;font-size:9px;font-weight:900;background:var(--ink);color:#fff;padding:2px 6px;letter-spacing:.18em}
+.atl-strip{margin-top:8px}
+.atl-go{width:100%;display:flex;align-items:center;gap:10px;background:#fff;border:3px solid var(--ink);box-shadow:var(--hard);padding:10px 12px;text-align:left;font-family:inherit;cursor:pointer}
+.atl-go:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
+.atl-go strong{font-size:14px;flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.atl-go-ic{font-size:16px;font-weight:900;color:var(--pink)}
 
 /* ===== V4 五 tab 新版式（发现/地图/拍摄） ===== */
-.nav-btn.nav-cap .nav-box{background:var(--ink)}
+.nav-btn.nav-cap .nav-box{background:var(--ink);color:#fff}
 .nav-btn.nav-cap .nav-label{color:var(--pink)}
 .dv-sec{padding:14px 16px 0}
 .dv-sec-head{display:flex;justify-content:space-between;align-items:baseline}
@@ -1278,7 +1306,9 @@ async function checkinApi(spotId,eventKeyArg){
   navigator.geolocation.getCurrentPosition(async position=>{
     try{
       geo.accuracy=Math.max(30,Math.round(position.coords.accuracy||0));
-      handle(await doPost({userLng:position.coords.longitude,userLat:position.coords.latitude}));
+      /* 浏览器原始 GPS 是 WGS-84，全 app 统一 GCJ-02（点位/geo.coords 都是），必须转换，否则打卡距离整体偏差 300-600 米 */
+      const gcj=wgs84togcj02(position.coords.longitude,position.coords.latitude);
+      handle(await doPost({userLng:gcj.lng,userLat:gcj.lat}));
       re();
     }catch(error){re();failCheckin(error,spotId,eventKey);}
   },error=>{re();failCheckin(new Error('获取定位失败：'+(error.message||'请检查定位权限')),spotId,eventKey);},{enableHighAccuracy:true,timeout:9000,maximumAge:15000});
@@ -2390,7 +2420,7 @@ function renderEventPage(){
 <span class="evt-bar-tag mono">DETAILS</span>
 <button type="button" class="evt-bar-btn" data-action="evt-share" data-event="${esc(E.key)}" data-name="${esc(E.name)}" aria-label="分享">⇪</button>
 </header>
-<section class="panel evt-hero"><span class="evt-hero-star" aria-hidden="true">${pixIcon('star')}</span><div class="evt-hero-progress"><span class="evt-bar-track"><i style="width:${total?Math.round(doneN/total*100):0}%"></i></span><b class="mono">${doneN}/${total}</b></div></section>
+<section class="panel evt-hero${E.coverUrl?' has-cover':''}">${E.coverUrl?`<span class="evt-hero-cover" aria-hidden="true"><img src="${esc(photoAbsUrl(E.coverUrl))}" alt=""></span>`:''}<span class="evt-hero-star" aria-hidden="true">${pixIcon('star')}</span><div class="evt-hero-progress"><span class="evt-bar-track"><i style="width:${total?Math.round(doneN/total*100):0}%"></i></span><b class="mono">${doneN}/${total}</b></div></section>
 <section class="evt-head">
 <div><h1>${esc(E.name)}</h1><div class="evt-tags">${ended?'<span class="evt-tag end">已结束</span>':'<span class="evt-tag live">LIVE</span>'}<span class="evt-tag">${total} SPOTS</span></div></div>
 </section>
@@ -2577,9 +2607,87 @@ function updateCaptureChrome(){
 let dvTab='pulse';
 function renderDiscover(){
   if(mode!=='api')return offlineNote()+'<p class="about-list">连接后可看正在发生的活动与现场。</p>';
-  return `<section class="dv-sec"><div class="dv-sec-head"><span class="dv-sec-title">PIXEL TREASURE MAP / 藏宝图</span></div><div id="dv-tmap" style="margin-top:8px">${treasureMapInner()}</div></section>
+  return `<section class="dv-sec"><div class="dv-sec-head"><span class="dv-sec-title">PIXEL TREASURE MAP / 藏宝图</span></div><div id="dv-tmap" style="margin-top:8px">${atlasInner()}</div></section>
 <section class="dv-sec"><div class="dv-sec-head"><span class="dv-sec-title">LIVE NOW / 正在发生</span><button type="button" class="dv-see-all" data-action="nav" data-view="events">SEE ALL →</button></div><div class="dv-scroll" id="dv-live">${liveCardsInner()}</div></section>
 <section class="dv-sec"><div class="dv-sec-head"><span class="dv-sec-title">CITY PULSE / 城市脉搏</span></div><div id="dv-pulse" style="padding:0 2px">${pulseInner()}</div></section>`;
+}
+/* CITY ATLAS：静态底图（做旧处理）+ 真实活动点位十字标 + 宝藏虚线路径 */
+let atlasCache=null;
+function atlasCityEvents(){
+  const evs=(nearEvents||[]).filter(e=>{
+    if(e.active===false)return false;
+    const d=eventDist(e);
+    return d!=null&&d<=50000;
+  });
+  return evs;
+}
+function atlasBuild(evs){
+  const pts=evs.map(e=>({e,lng:e.center.lng,lat:e.center.lat}));
+  if(geo.state==='ok'&&geo.coords)pts.push({me:true,lng:geo.coords.lng,lat:geo.coords.lat});
+  if(!pts.length)return null;
+  const lngs=pts.map(p=>p.lng),lats=pts.map(p=>p.lat);
+  const pad=0.012;
+  const minLng=Math.min(...lngs)-pad,maxLng=Math.max(...lngs)+pad;
+  const minLat=Math.min(...lats)-pad*0.7,maxLat=Math.max(...lats)+pad*0.7;
+  const W=320,H=224;
+  const dlng=Math.max(maxLng-minLng,0.012),dlat=Math.max(maxLat-minLat,0.009);
+  const cLng=(minLng+maxLng)/2,cLat=(minLat+maxLat)/2;
+  const cosF=Math.cos(cLat*Math.PI/180);
+  /* zoom 使 bbox 塞进画幅（留 12% 边） */
+  const fitZ=z=>({
+    w:(dlng)*(256*Math.pow(2,z)/360),
+    h:(dlat)*(256*Math.pow(2,z)/360)/cosF
+  });
+  let z=16;
+  while(z>11&&(fitZ(z).w>W*0.86||fitZ(z).h>H*0.86))z--;
+  const f=256*Math.pow(2,z)/360;
+  const proj=(lng,lat)=>({
+    x:(W/2+(lng-cLng)*f)/W,
+    y:(H/2-(lat-cLat)*f/cosF)/H
+  });
+  const pins=pts.filter(p=>!p.me).map((p,i)=>Object.assign(proj(p.lng,p.lat),{e:p.e}));
+  const me=pts.find(p=>p.me);
+  const meP=me?proj(me.lng,me.lat):null;
+  let nearest=null,nd=Infinity;
+  for(const pin of pins){const d=eventDist(pin.e);if(d!=null&&d<nd){nd=d;nearest=pin;}}
+  const key=[cLng.toFixed(3),cLat.toFixed(3),z,pins.length].join(',');
+  const url='/api/outie/staticmap?location='+cLng.toFixed(6)+','+cLat.toFixed(6)+'&zoom='+z+'&size='+W+'*'+H+'&scale=2';
+  return {key,url,W,H,z,pins,meP,nearest,nd};
+}
+function atlasInner(){
+  const evs=atlasCityEvents();
+  if(!evs.length)return treasureMapInner();
+  if(!atlasCache||atlasCache.keyBuild!=='v2'){
+    const b=atlasBuild(evs);
+    if(!b)return treasureMapInner();
+    atlasCache=Object.assign(b,{keyBuild:'v2',sel:b.nearest?0:-1});
+  }else{
+    const b=atlasBuild(evs);
+    if(b&&b.key!==atlasCache.key)atlasCache=Object.assign(b,{keyBuild:'v2',sel:atlasCache.sel});
+  }
+  const a=atlasCache;
+  const pinEl=(p,i)=>{
+    const isSel=i===a.sel;
+    const d=eventDist(p.e);
+    return `<button type="button" class="atl-pin${isSel?' sel':''}" data-action="atlas-pin" data-idx="${i}" style="left:${(p.x*100).toFixed(2)}%;top:${(p.y*100).toFixed(2)}%" aria-label="${esc(p.e.name)}"><span class="atl-x">✕</span><span class="atl-name">${esc(String(p.e.name).slice(0,8))}${d!=null?' · '+fmtDistance(d):''}</span></button>`;
+  };
+  const route=(a.meP&&a.nearest)?`<line x1="${(a.meP.x*100).toFixed(2)}%" y1="${(a.meP.y*100).toFixed(2)}%" x2="${(a.nearest.x*100).toFixed(2)}%" y2="${(a.nearest.y*100).toFixed(2)}%"/>`:'';
+  const sel=a.pins[a.sel]||a.nearest||a.pins[0];
+  const selEv=sel&&sel.e;
+  const strip=selEv?`<div class="atl-strip"><button type="button" class="atl-go" data-action="${eventData&&eventData.key===selEv.key?'nav':'event-open'}" ${eventData&&eventData.key===selEv.key?'data-view="event"':`data-event="${esc(selEv.key)}"`}><span class="dv-sec-title" style="opacity:.55;display:block">TREASURE #${String(a.sel>=0?a.sel+1:1).padStart(2,'0')}</span><strong>${esc(selEv.name)}</strong><span class="atl-go-ic">→</span></button></div>`:'';
+  return `<div class="atl">
+<div class="atl-frame">
+<img class="atl-base" src="${a.url}" alt="" loading="lazy" onerror="this.closest('.atl').classList.add('atl-fallback')">
+<span class="atl-dots" aria-hidden="true"></span>
+<svg class="atl-route" viewBox="0 0 100 56" preserveAspectRatio="none" aria-hidden="true">${route}</svg>
+${a.meP?`<span class="atl-me" style="left:${(a.meP.x*100).toFixed(2)}%;top:${(a.meP.y*100).toFixed(2)}%" aria-hidden="true">◈</span>`:''}
+${a.pins.map(pinEl).join('')}
+<span class="atl-compass" aria-hidden="true">↑N</span>
+<span class="atl-stamp mono" aria-hidden="true">OUTIE<br>SURVEY</span>
+<span class="atl-title mono">CITY ATLAS</span>
+</div>
+${strip}
+</div>`;
 }
 function treasureMapInner(){
   if(nearEventsStatus==='loading'||nearEventsStatus==='idle')return '<div class="tmap"><div class="tmap-grid"></div><p class="about-list mono" style="position:absolute;inset:0;display:grid;place-items:center;margin:0">藏宝图测绘中…</p></div>';
@@ -2634,7 +2742,7 @@ function pulseInner(){
 }
 function renderDiscoverDyn(){
   const t=document.getElementById('dv-tmap');
-  if(t)t.innerHTML=treasureMapInner();
+  if(t)t.innerHTML=localize(atlasInner());
   const l=document.getElementById('dv-live');
   if(l)l.innerHTML=localize(liveCardsInner());
   const p=document.getElementById('dv-pulse');
@@ -3045,7 +3153,7 @@ function renderMyEventsList(wrap){
     const badge=e.active?'<span class="wb-badge on">进行中</span>':'<span class="wb-badge off">已下架</span>';
     const dataLine=st?`<span class="about-list mono">${st.visitors} 人 · ${st.checkins} 章 · ${st.photos} 图</span>`:'';
     const redeem=st&&st.voucherEnabled?`<div class="wb-redeem"><input id="redeem-${esc(e.key)}" class="name-input mono" style="min-height:0;padding:7px 8px;font-size:12px;width:104px;text-transform:uppercase" placeholder="核销码" maxlength="6"><button type="button" class="stamp-btn" data-action="wb-redeem" data-event="${esc(e.key)}"><span>核销</span><span>CHECK-IN</span></button></div>`:'';
-    return `<div class="wb-ticket"><div class="wb-ticket-top"><div><h3>${esc(e.name)}</h3>${dataLine}</div>${badge}</div><div class="wb-ticket-dash"></div><div class="wb-ticket-actions"><button type="button" class="btn btn-quiet" style="width:auto;min-height:0;padding:8px 10px;font-size:11px" data-action="wb-promo" data-event="${esc(e.key)}">宣传照</button><button type="button" class="btn btn-quiet" style="width:auto;min-height:0;padding:8px 10px;font-size:11px" data-action="wb-calib" data-event="${esc(e.key)}">📍 校准位置</button><button type="button" class="btn btn-quiet" style="width:auto;min-height:0;padding:8px 10px;font-size:11px" data-action="wb-active-toggle" data-event="${esc(e.key)}" data-to="${e.active?'0':'1'}">${e.active?'下架':'上架'}</button><button type="button" class="btn btn-quiet" style="width:auto;min-height:0;padding:8px 10px;font-size:11px" data-action="event-open" data-event="${esc(e.key)}">查看</button>${redeem}</div></div>`;
+    return `<div class="wb-ticket"><div class="wb-ticket-top"><div><h3>${esc(e.name)}</h3>${dataLine}</div>${badge}</div><div class="wb-ticket-dash"></div><div class="wb-ticket-actions"><button type="button" class="btn btn-quiet" style="width:auto;min-height:0;padding:8px 10px;font-size:11px" data-action="wb-cover" data-event="${esc(e.key)}">${e.coverUrl?'换首图':'传首图'}</button><button type="button" class="btn btn-quiet" style="width:auto;min-height:0;padding:8px 10px;font-size:11px" data-action="wb-promo" data-event="${esc(e.key)}">宣传照</button><button type="button" class="btn btn-quiet" style="width:auto;min-height:0;padding:8px 10px;font-size:11px" data-action="wb-calib" data-event="${esc(e.key)}">📍 校准位置</button><button type="button" class="btn btn-quiet" style="width:auto;min-height:0;padding:8px 10px;font-size:11px" data-action="wb-active-toggle" data-event="${esc(e.key)}" data-to="${e.active?'0':'1'}">${e.active?'下架':'上架'}</button><button type="button" class="btn btn-quiet" style="width:auto;min-height:0;padding:8px 10px;font-size:11px" data-action="event-open" data-event="${esc(e.key)}">查看</button>${redeem}</div></div>`;
   }).join('');
 }
 function renderWbDash(wrap){
@@ -3381,6 +3489,7 @@ function handleAction(button){
     case 'event-open':openEventDetailPage(button.dataset.event);break;
     case 'events-filter':eventsFilter=button.dataset.filter||'all';render();renderEventsList();break;
     case 'map-filter':mapFilter=button.dataset.filter||'all';render();break;
+    case 'atlas-pin':if(atlasCache){atlasCache.sel=Number(button.dataset.idx)||0;renderDiscoverDyn();}break;
     case 'evt-save':{
       const k=button.dataset.event,list=evtSavedList(),ix=list.indexOf(k);
       if(ix>=0)list.splice(ix,1);else list.push(k);
@@ -3523,6 +3632,28 @@ function handleAction(button){
       apiFetch('/outie/events/'+encodeURIComponent(button.dataset.event),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({active:button.dataset.to==='1'})})
         .then(async()=>{toast(button.dataset.to==='1'?'已上架。':'已下架。');await refreshEventContext();loadMyEventsList(true);render();})
         .catch(err=>{wbError('操作失败：'+errText(err));});
+      break;
+    }
+    case 'wb-cover':{
+      const ev=button.dataset.event;
+      const input=document.createElement('input');
+      input.type='file';input.accept='image/*';input.setAttribute('capture','environment');input.style.display='none';
+      input.addEventListener('change',async()=>{
+        const file=input.files&&input.files[0];if(!file)return;
+        button.disabled=true;
+        try{
+          toast('正在处理首图…');
+          const dataUrl=await compressImage(file,1600);
+          const blob=dataUrlToBlob(dataUrl);
+          const fd=new FormData();
+          fd.append('photo',blob,'cover.jpg');
+          const data=await apiFetch('/outie/events/'+encodeURIComponent(ev)+'/cover',{method:'POST',body:fd});
+          nearEvents=null;nearEventsStatus='idle';myEvents=null;myEventsStatus='idle';eventWallKey=null;
+          toast('首图已更新。');render();loadMyEventsList(true);
+        }catch(error){toast('上传失败：'+errText(error));}
+        button.disabled=false;
+      });
+      document.body.appendChild(input);input.click();setTimeout(()=>input.remove(),60000);
       break;
     }
     case 'wb-promo':{
