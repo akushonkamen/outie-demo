@@ -911,9 +911,8 @@ body.evt-detail-page main{padding-bottom:120px}
 /* ===== CITY ATLAS 藏宝图 V2 ===== */
 .atl{position:relative}
 .atl-frame{position:relative;aspect-ratio:320/224;border:3px solid var(--ink);box-shadow:var(--hard);overflow:hidden;background:var(--paper)}
-.dv-city-chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:10px 16px 0}
-.dv-city-chips::-webkit-scrollbar{display:none}
-.dv-city-chips .mp-chip{flex:none}
+.dv-city-row{display:flex;gap:10px;align-items:center;padding:10px 16px 0}
+.dv-city-select{appearance:none;-webkit-appearance:none;background:#fff;border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink);padding:6px 26px 6px 10px;font-family:inherit;font-size:11px;font-weight:900;color:var(--ink);background-image:linear-gradient(45deg,transparent 50%,var(--ink) 50%),linear-gradient(135deg,var(--ink) 50%,transparent 50%);background-position:calc(100% - 14px) 55%,calc(100% - 9px) 55%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
 .atl-map{position:absolute;inset:0;background:var(--paper)}
 .atl-map .amap-maps canvas{filter:grayscale(1) contrast(1.12) brightness(1.07) sepia(.12)}
 .atl-map .amap-logo,.atl-map .amap-copyright{opacity:.55;transform:scale(.8);transform-origin:bottom left}
@@ -1738,6 +1737,7 @@ function render(){
     if(!discoverEnterLoaded){discoverEnterLoaded=true;loadNearEvents(true);loadNearStream(true);}
     else{if(nearEventsStatus==='idle')loadNearEvents(false);if(nearStatus==='idle')loadNearStream(false);}
     initAtlasMap();
+    loadMyEventsList(false).then(()=>{if(view==='discover')refreshAtlasData();}).catch(()=>{});
     ensureUserCity().then(()=>{ensureEventCities().then(()=>{if(view==='discover')refreshAtlasData();});});
   }else if(view!=='discover'){discoverEnterLoaded=false;}
   updateAccountHeader();
@@ -2634,11 +2634,31 @@ function updateCaptureChrome(){
 }
 /* ---------- 发现页（PAGE: DISCOVER 城市脉搏） ---------- */
 let dvTab='pulse';
-function cityChipsHTML(){
+function eventCenterOf(e){
+  if(e.center&&Number.isFinite(e.center.lng))return e.center;
+  const pts=(e.spots||[]).filter(sp=>Number.isFinite(sp.lng)&&Number.isFinite(sp.lat));
+  if(!pts.length)return null;
+  return {lng:pts.reduce((a,p)=>a+p.lng,0)/pts.length,lat:pts.reduce((a,p)=>a+p.lat,0)/pts.length};
+}
+function citySelectHTML(){
   const nearLabel=(userCity||'附近').replace(/市$/,'');
-  const chips=[['near',nearLabel,atlasCityEvents().length]];
-  for(const [c,n] of atlasCityList())if(c!==atlasCitySel||true)chips.push([c,c,n]);
-  return chips.slice(0,7).map(([k,label])=>`<button type="button" class="mp-chip${atlasCitySel===k?' on':''}" data-action="atlas-city" data-city="${esc(k)}">${esc(label)}</button>`).join('');
+  const counts={};
+  const tally=e=>{
+    const c=evtCityCache[e.key];
+    if(!c)return;
+    const on=e.active!==false;
+    const rec=counts[c]||(counts[c]={on:0,all:0});
+    rec.all++;if(on)rec.on++;
+  };
+  (nearEvents||[]).forEach(tally);
+  (myEvents||[]).forEach(tally);
+  const cities=Object.entries(counts).sort((a,b)=>(b[1].on-a[1].on)||(b[1].all-a[1].all)||a[0].localeCompare(b[0]));
+  const opts=[['near',nearLabel]].concat(cities.map(([c])=>[c,c]));
+  return `<select id="dv-city-select" class="dv-city-select" aria-label="切换城市">${opts.map(([k,label])=>`<option value="${esc(k)}"${atlasCitySel===k?' selected':''}>${esc(label)}${k!=='near'&&counts[k]&&counts[k].on?' · '+counts[k].on:''}</option>`).join('')}</select>`;
+}
+function refreshCitySelect(){
+  const row=document.getElementById('dv-city-row');
+  if(row)row.innerHTML=localize(`<span class="dv-sec-title" style="opacity:.5;align-self:center">CITY / 城市</span>`+citySelectHTML());
 }
 function atlasInfoHTML(){
   const evs=atlasCityEvents();
@@ -2651,7 +2671,7 @@ function atlasInfoHTML(){
 }
 function renderDiscover(){
   if(mode!=='api')return offlineNote()+'<p class="about-list">连接后可看正在发生的活动与现场。</p>';
-  return `<section class="dv-sec"><div class="dv-sec-head"><span class="dv-sec-title">PIXEL TREASURE MAP / 藏宝图</span></div><div class="dv-city-chips" id="dv-city-chips">${cityChipsHTML()}</div><div id="dv-atlas" style="margin-top:8px">${atlasSkeletonHTML()}</div></section>
+  return `<section class="dv-sec"><div class="dv-sec-head"><span class="dv-sec-title">PIXEL TREASURE MAP / 藏宝图</span></div><div class="dv-city-row" id="dv-city-row"><span class="dv-sec-title" style="opacity:.5;align-self:center">CITY / 城市</span>${citySelectHTML()}</div><div id="dv-atlas" style="margin-top:8px">${atlasSkeletonHTML()}</div></section>
 <section class="dv-sec"><div class="dv-sec-head"><span class="dv-sec-title">LIVE NOW / 正在发生</span><button type="button" class="dv-see-all" data-action="nav" data-view="events">SEE ALL →</button></div><div class="dv-scroll" id="dv-live">${liveCardsInner()}</div></section>
 <section class="dv-sec"><div class="dv-sec-head"><span class="dv-sec-title">CITY PULSE / 城市脉搏</span></div><div id="dv-pulse" style="padding:0 2px">${pulseInner()}</div></section>`;
 }
@@ -2659,17 +2679,18 @@ function renderDiscover(){
 let atlasMap=null,atlasAmapMarkers=[],atlasSel=0,atlasEvKeys=[],atlasMapPending=false;
 let atlasCitySel='near',evtCityCache={},evtCityFetch={},userCity='',atlasInfoHidden=true,discoverEnterLoaded=false;
 function ensureEventCities(){
-  const evs=(nearEvents||[]).filter(e=>e.active!==false&&e.center&&Number.isFinite(e.center.lng)&&!evtCityCache[e.key]&&!evtCityFetch[e.key]);
+  const pool={};
+  (nearEvents||[]).forEach(e=>{if(e.center&&Number.isFinite(e.center.lng))pool[e.key]=e;});
+  (myEvents||[]).forEach(e=>{const c=eventCenterOf(e);if(c)pool[e.key]={key:e.key,center:c,active:e.active};});
+  const evs=Object.values(pool).filter(e=>!evtCityCache[e.key]&&!evtCityFetch[e.key]);
   if(!evs.length)return Promise.resolve();
-  let chain=Promise.resolve();
-  evs.slice(0,8).forEach(ev=>{
+  return Promise.all(evs.slice(0,10).map(ev=>{
     evtCityFetch[ev.key]=true;
-    chain=chain.then(()=>apiFetch(`/location/regeo?lng=${ev.center.lng}&lat=${ev.center.lat}`).then(d=>{
+    return apiFetch(`/location/regeo?lng=${ev.center.lng}&lat=${ev.center.lat}`).then(d=>{
       const a=d&&d.address||{};
       evtCityCache[ev.key]=String(a.city||a.province||'').trim()||'其他城市';
-    }).catch(()=>{evtCityCache[ev.key]='其他城市';}));
-  });
-  return chain;
+    }).catch(()=>{evtCityCache[ev.key]='其他城市';});
+  })).then(()=>refreshCitySelect());
 }
 function ensureUserCity(){
   if(userCity)return Promise.resolve(userCity);
@@ -2678,15 +2699,6 @@ function ensureUserCity(){
     userCity=String(a.city||a.province||loc.city||loc.province||'').trim();
     return userCity;
   }).catch(()=>{userCity='';return '';});
-}
-function atlasCityList(){
-  const counts={};
-  for(const e of (nearEvents||[])){
-    if(e.active===false)continue;
-    const c=evtCityCache[e.key];
-    if(c)counts[c]=(counts[c]||0)+1;
-  }
-  return Object.entries(counts).sort((a,b)=>b[1]-a[1]);
 }
 function atlasCityEvents(){
   const alive=(nearEvents||[]).filter(e=>e.active!==false&&e.center&&Number.isFinite(e.center.lng));
@@ -2786,8 +2798,7 @@ function initAtlasMap(){
   }).catch(()=>{atlasMapPending=false;const f=document.getElementById('dv-atlas');if(f&&document.getElementById('dv-atlas-map'))f.innerHTML=treasureMapInner();});
 }
 function refreshAtlasData(forceFit){
-  const chips=document.getElementById('dv-city-chips');
-  if(chips)chips.innerHTML=localize(cityChipsHTML());
+  refreshCitySelect();
   const live=document.getElementById('dv-live');
   if(live)live.innerHTML=localize(liveCardsInner());
   if(atlasMap){
@@ -2907,9 +2918,10 @@ async function loadNearEvents(force){
 function eventsBody(){
   if(nearEventsStatus==='loading'||nearEventsStatus==='idle')return `<div class="live-cell-empty" style="max-width:none"><span class="live-dither" aria-hidden="true"></span><p>加载中…</p></div>`;
   if(nearEventsStatus==='error')return `<div class="live-cell-empty" style="max-width:none"><span class="live-dither" aria-hidden="true"></span><p>活动加载失败。</p><button class="live-status-btn" type="button" data-action="near-refresh">重试</button></div>`;
-  if(nearEventsScope==='all')return `<p class="small-meta mono" style="margin:0 0 8px">未定位 · 显示全部进行中活动</p><div class="event-cards">${(nearEvents||[]).map(eventCard).join('')||'<div class="live-cell-empty" style="max-width:none"><p>暂时没有进行中的活动。</p></div>'}</div>`;
-  if(!nearEvents||!nearEvents.length)return `<div class="live-cell-empty" style="max-width:none"><span class="live-dither" aria-hidden="true"></span><p>附近暂无进行中的活动。</p></div>`;
-  return `<div class="event-cards">${nearEvents.map(eventCard).join('')}</div>`;
+  /* 附近现场=字面意义：只显示定位 10km 内的进行中活动（全城/全国的在活动大厅） */
+  const near=(nearEvents||[]).map(e=>({e,d:eventDist(e)})).filter(x=>x.e.active!==false&&x.d!=null&&x.d<=10000).sort((a,b)=>a.d-b.d);
+  if(!near.length)return `<div class="live-cell-empty" style="max-width:none"><span class="live-dither" aria-hidden="true"></span><p>附近暂无进行中的活动。全部活动见「首页」。</p></div>`;
+  return `<div class="event-cards">${near.map(x=>eventCard(x.e)).join('')}</div>`;
 }
 function eventCard(e){
   const cover=e.coverUrl?`<img class="event-cover" src="${esc(photoAbsUrl(e.coverUrl))}" alt="" loading="lazy">`:`<span class="event-cover event-cover-empty mono" aria-hidden="true">${pixText('EVENT',2,'#26241c')}</span>`;
@@ -3599,11 +3611,6 @@ function handleAction(button){
     case 'event-open':openEventDetailPage(button.dataset.event);break;
     case 'events-filter':eventsFilter=button.dataset.filter||'all';render();renderEventsList();break;
     case 'map-filter':mapFilter=button.dataset.filter||'all';render();break;
-    case 'atlas-city':{
-      const c=button.dataset.city||'near';
-      if(c!==atlasCitySel){atlasCitySel=c;atlasSel=0;atlasInfoHidden=true;refreshAtlasData(true);}
-      break;
-    }
     case 'atlas-detail':{
       const evs=atlasCityEvents();const ev=evs[atlasSel];
       if(!ev)break;
@@ -3839,6 +3846,13 @@ document.addEventListener('input',event=>{
       wbSpots[i][f]=f==='lng'||f==='lat'?Number(el.value):el.value;
     }
     return;
+  }
+});
+document.addEventListener('change',event=>{
+  const el=event.target;
+  if(el.id==='dv-city-select'){
+    const c=el.value||'near';
+    if(c!==atlasCitySel){atlasCitySel=c;atlasSel=0;atlasInfoHidden=true;refreshAtlasData(true);}
   }
 });
 document.addEventListener('click',event=>{
