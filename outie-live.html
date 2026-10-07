@@ -939,6 +939,14 @@ body.evt-detail-page main{padding-bottom:120px}
 .atl-info-actions{margin-top:8px}
 .atl-info-x{position:absolute;top:2px;right:2px;width:26px;height:26px;background:none;border:0;font-size:16px;font-weight:900;color:var(--ink);font-family:inherit;cursor:pointer}
 .atl-pin{cursor:pointer}
+.atl-pin.off .atl-x{color:#8a8a8a}
+.atl-pin.off .atl-name{background:#e6e6e6;opacity:.75}
+.atl-x.off{color:#8a8a8a}
+.atl-tag-off{display:inline-block;background:#e6e6e6;border:1px solid var(--ink);font-size:9px;padding:0 4px;margin-left:6px;vertical-align:2px}
+.act-status.end{background:#9a9a9a;color:#fff}
+.act-card.off .act-title{opacity:.6}
+.atl-empty{position:absolute;inset:0;display:grid;place-items:center;background:rgba(214,214,214,.55);z-index:8;pointer-events:none}
+.atl-empty span{background:#fff;border:2px solid var(--ink);padding:6px 12px;font-size:11px;font-weight:700;box-shadow:2px 2px 0 var(--ink)}
 .atl-strip{margin-top:8px}
 .atl-go{width:100%;display:flex;align-items:center;gap:10px;background:#fff;border:3px solid var(--ink);box-shadow:var(--hard);padding:10px 12px;text-align:left;font-family:inherit;cursor:pointer}
 .atl-go:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
@@ -2643,7 +2651,10 @@ function eventCenterOf(e){
 function citySelectHTML(){
   const nearLabel=(userCity||'附近').replace(/市$/,'');
   const counts={};
+  const seen=new Set();
   const tally=e=>{
+    if(seen.has(e.key))return;
+    seen.add(e.key);
     const c=evtCityCache[e.key];
     if(!c)return;
     const on=e.active!==false;
@@ -2667,7 +2678,8 @@ function atlasInfoHTML(){
   const d=eventDist(ev);
   const sp=(ev.spots&&ev.spots.length)||0;
   const sub=String(ev.subtitle||'').trim();
-  return `<div class="atl-info"><button type="button" class="atl-info-x" data-action="atlas-info-close" aria-label="收起">×</button><strong>${esc(ev.name)}</strong>${sub?`<p class="atl-info-sub">${esc(sub)}</p>`:''}<p class="atl-info-meta mono">${d!=null?fmtDistance(d)+' · ':''}${sp} SPOTS</p><div class="atl-info-actions"><button type="button" class="btn btn-dark" style="width:auto;min-height:0;padding:7px 12px;font-size:11px" data-action="atlas-detail">完整详情 →</button></div></div>`;
+  const off=ev.active===false;
+  return `<div class="atl-info"><button type="button" class="atl-info-x" data-action="atlas-info-close" aria-label="收起">×</button><strong>${esc(ev.name)}${off?' <span class="atl-tag-off mono">已结束</span>':''}</strong>${sub?`<p class="atl-info-sub">${esc(sub)}</p>`:''}<p class="atl-info-meta mono">${d!=null?fmtDistance(d)+' · ':''}${sp} SPOTS</p><div class="atl-info-actions"><button type="button" class="btn btn-dark" style="width:auto;min-height:0;padding:7px 12px;font-size:11px" data-action="atlas-detail">完整详情 →</button></div></div>`;
 }
 function renderDiscover(){
   if(mode!=='api')return offlineNote()+'<p class="about-list">连接后可看正在发生的活动与现场。</p>';
@@ -2700,16 +2712,29 @@ function ensureUserCity(){
     return userCity;
   }).catch(()=>{userCity='';return '';});
 }
+function atlasAllEvents(){
+  /* near + my 合并去重（同 key 以 near 优先），myEvents 补充已下架场次 */
+  const pool={};
+  (nearEvents||[]).forEach(e=>{if(e.center&&Number.isFinite(e.center.lng))pool[e.key]=e;});
+  (myEvents||[]).forEach(e=>{
+    if(pool[e.key])return;
+    const c=eventCenterOf(e);
+    if(c)pool[e.key]={key:e.key,name:e.name,subtitle:e.subtitle,active:e.active,center:c,spots:e.spots||[],coverUrl:e.coverUrl||''};
+  });
+  return Object.values(pool);
+}
 function atlasCityEvents(){
-  const alive=(nearEvents||[]).filter(e=>e.active!==false&&e.center&&Number.isFinite(e.center.lng));
+  const all=atlasAllEvents();
   if(atlasCitySel==='near'){
-    const withD=alive.map(e=>({e,d:eventDist(e)})).filter(x=>x.d!=null);
+    const withD=all.filter(e=>e.active!==false).map(e=>({e,d:eventDist(e)})).filter(x=>x.d!=null);
     const inCity=withD.filter(x=>x.d<=50000).sort((a,b)=>a.d-b.d);
     /* 当前城市（50km）有活动就只画城市；没有就画全国最近 5 场，别让藏宝图空着 */
     if(inCity.length)return inCity.map(x=>x.e);
     return withD.sort((a,b)=>a.d-b.d).slice(0,5).map(x=>x.e);
   }
-  return alive.filter(e=>evtCityCache[e.key]===atlasCitySel);
+  /* 指定城市：进行中在前，已下架的排后（灰显） */
+  const inCity=all.filter(e=>evtCityCache[e.key]===atlasCitySel);
+  return inCity.sort((a,b)=>((b.active!==false)-(a.active!==false))||((eventDist(a)||1e12)-(eventDist(b)||1e12)));
 }
 function atlasSkeletonHTML(){
   return `<div class="atl"><div class="atl-frame"><div id="dv-atlas-map" class="atl-map"></div><span class="atl-dots" aria-hidden="true"></span><span class="atl-compass" aria-hidden="true">↑N</span><span class="atl-stamp mono" aria-hidden="true">OUTIE<br>SURVEY</span><span class="atl-title mono" aria-hidden="true">CITY ATLAS</span><div class="atl-info-wrap" id="dv-atlas-info">${atlasInfoHTML()}</div></div></div>`;
@@ -2719,7 +2744,8 @@ function destroyAtlasMap(){
   atlasMap=null;atlasAmapMarkers=[];atlasEvKeys=[];
 }
 function atlasPinContent(ev,d,sel){
-  return `<button type="button" class="atl-pin${sel?' sel':''}" data-action="atlas-pin"><span class="atl-x">✕</span><span class="atl-name">${esc(String(ev.name).slice(0,8))}${d!=null?' · '+fmtDistance(d):''}</span></button>`;
+  const off=ev.active===false;
+  return `<button type="button" class="atl-pin${sel?' sel':''}${off?' off':''}" data-action="atlas-pin"><span class="atl-x${off?' off':''}">✕</span><span class="atl-name">${esc(String(ev.name).slice(0,8))}${d!=null?' · '+fmtDistance(d):''}${off?' · 已结束':''}</span></button>`;
 }
 function atlasRefreshSel(){
   const wrap=document.getElementById('dv-atlas-info');
@@ -2736,10 +2762,24 @@ function atlasRefreshSel(){
 }
 function buildAtlasOverlay(){
   const AMap=window.AMap,evs=atlasCityEvents();
-  if(!atlasMap||!AMap||!evs.length){atlasAmapMarkers=[];return;}
-  /* 覆盖物重建：先清旧的（保留路线引用一并清） */
+  if(!atlasMap||!AMap)return;
+  /* 覆盖物重建：先清旧的（保留路线引用一并清）——空城市也必须清，否则切城市看着像没切 */
   const old=[...atlasAmapMarkers].filter(Boolean);
   if(old.length)atlasMap.remove(old);
+  if(atlasAmapMarkers._route){try{atlasMap.remove(atlasAmapMarkers._route);}catch(e){}}
+  const holderCur=document.getElementById('dv-atlas-map');
+  const oldEmpty=holderCur&&holderCur.querySelector('.atl-empty');
+  if(oldEmpty)oldEmpty.remove();
+  if(!evs.length){
+    if(holderCur&&holderCur.isConnected){
+      const tip=document.createElement('div');
+      tip.className='atl-empty';
+      tip.innerHTML=`<span>${esc(atlasCitySel)}暂无进行中的活动</span>`;
+      holderCur.appendChild(tip);
+    }
+    atlasAmapMarkers=[];
+    return;
+  }
   atlasAmapMarkers=evs.map((ev,i)=>{
     const mk=new AMap.Marker({
       position:[ev.center.lng,ev.center.lat],
@@ -2830,16 +2870,16 @@ function treasureMapInner(){
 }
 function liveCardsInner(){
   if(nearEventsStatus==='loading'||nearEventsStatus==='idle')return '<p class="about-list mono" style="padding:8px 0">加载中…</p>';
-  const scoped=atlasCitySel==='near'?nearEvents:nearEvents.filter(e=>evtCityCache[e.key]===atlasCitySel);
-  const live=scoped.filter(e=>e.active!==false);
-  if(!live.length)return '<p class="about-list mono" style="padding:8px 0">附近暂无进行中的活动。</p>';
-  return live.slice(0,8).map(e=>{
+  const scoped=atlasCitySel==='near'?atlasCityEvents():atlasCityEvents();
+  if(!scoped.length)return '<p class="about-list mono" style="padding:8px 0">这个城市暂时没有活动。</p>';
+  return scoped.slice(0,8).map(e=>{
+    const off=e.active===false;
     const sp=(e.spots&&e.spots[0])||{};
     const loc=sp.address||sp.zone||e.subtitle||'现场';
     const distV=eventDist(e);const dist=distV!=null?fmtDistance(distV):'';
     const isCur=eventData&&eventData.key===e.key;
-    return `<button type="button" class="act-card" data-action="${isCur?'nav':'event-open'}" ${isCur?'data-view="event"':`data-event="${esc(e.key)}"`}>
-<div class="act-img">${e.coverUrl?`<img src="${esc(photoAbsUrl(e.coverUrl))}" alt="" loading="lazy">`:'<div class="stipple"></div>'}<span class="act-status">ONGOING</span>${dist?`<span class="act-dist">${dist}</span>`:''}</div>
+    return `<button type="button" class="act-card${off?' off':''}" data-action="${isCur?'nav':'event-open'}" ${isCur?'data-view="event"':`data-event="${esc(e.key)}"`}>
+<div class="act-img">${e.coverUrl?`<img src="${esc(photoAbsUrl(e.coverUrl))}" alt="" loading="lazy">`:'<div class="stipple"></div>'}<span class="act-status${off?' end':''}">${off?'已结束':'ONGOING'}</span>${dist?`<span class="act-dist">${dist}</span>`:''}</div>
 <div class="dv-sec-title" style="opacity:.5">ACTIVITY</div>
 <div class="act-title">${esc(e.name)}</div>
 <div class="dv-sec-title" style="opacity:.5;margin:4px 0 2px">LOCATION</div>
