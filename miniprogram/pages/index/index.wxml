@@ -1,0 +1,21 @@
+<view class="card" wx:if="{{!bound}}">
+  <view class="title">绑定 OUTIE</view>
+  <view class="step">1. 打开 OUTIE 网页「我的」页</view>
+  <view class="step">2. 点「绑定微信步数」，输入下方绑定码</view>
+  <input class="code-input" type="number" maxlength="6" placeholder="输入绑定码" bindinput="onBindInput" value="{{bindInput}}" />
+  <button bindtap="doBind" loading="{{binding}}">绑定</button>
+</view>
+<view class="card" wx:if="{{bound}}">
+  <view class="muted mono">{{petName}}</view>
+  <view class="big">{{tokens}}</view>
+  <view class="muted mono">饲料（包）· 今日 {{steps}} 步</view>
+  <button bindtap="syncSteps" loading="{{syncing}}" disabled="{{!petName}}" style="margin-top:16px">同步步数</button>
+  <view class="muted mono" style="margin-top:8px" wx:if="{{hint}}">{{hint}}</view>
+</view>
+<view class="card" wx:if="{{bound && !petName}}">
+  <view class="muted mono">还未领养宠物。请在 OUTIE 网页领养后回来同步。</view>
+</view>
+<view class="card tip" wx:if="{{showStarHint}}">
+  <view class="mono muted">点右上角「···」→「添加到我的小程序」，下次直接同步</view>
+  <button class="btn-text" bindtap="dismissStar" style="margin-top:8px">知道了</button>
+</view>

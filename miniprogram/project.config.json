@@ -1,0 +1,10 @@
+{
+  "appid": "wxeb8d477e2a091679",
+  "projectname": "outie-steps",
+  "compileType": "miniprogram",
+  "setting": {
+    "urlCheck": false,
+    "es6": true
+  },
+  "libVersion": "latest"
+}
