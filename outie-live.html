@@ -797,6 +797,7 @@ main{position:relative;padding-top:16px}
 .wb-badge{flex:none;border:2px solid var(--ink);padding:2px 6px;font-size:9px;font-weight:900}
 .wb-badge.on{background:var(--green);color:#fff}
 .wb-badge.off{background:#c9c9c9;color:#555}
+.wb-badge.wait{background:var(--yellow);color:var(--ink)}
 .wb-ticket-dash{border-top:2px dashed var(--ink);margin:10px -14px}
 .wb-ticket-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .wb-redeem{display:flex;gap:8px;align-items:center;margin-left:auto}
@@ -2476,7 +2477,10 @@ function renderEventPage(){
   else if(pastE){const ks=new Set((pastE.spots||[]).map(x=>x.key));for(const sp of spots)doneMap[sp.key]=ks.has(sp.key);}
   const doneN=spots.filter(sp=>doneMap[keyOf(sp)]).length;
   const total=spots.length;
-  const ended=E.active===false;
+  /* 状态三态：手动下架或时间已过=已结束；startAt 在未来=未开始 */
+  const ended=E.active===false||E.status==='ended';
+  const upcoming=E.status==='upcoming';
+  const winStr=(E.startAt||E.endAt)?`${E.startAt?fmtClock(E.startAt):''}${E.startAt&&E.endAt?' – ':''}${E.endAt?fmtClock(E.endAt):''}`:'';
   /* GO 距离门槛：500m 内可打卡 */
   let distM=null;
   const center=(evtDetail&&evtDetail.center)||(eventDetailCache[E.key]&&eventDetailCache[E.key].center);
@@ -2489,6 +2493,7 @@ function renderEventPage(){
   const nextSpot=isCur?spots.find(sp=>!state.rewards[sp.id]):spots[0];
   let checkBtn;
   if(ended)checkBtn='<button type="button" class="evt-check end" disabled>已结束</button>';
+  else if(upcoming)checkBtn=`<button type="button" class="evt-check end" disabled>未开始${winStr?' · '+winStr:''}</button>`;
   else if(isCur&&total&&doneN>=total)checkBtn='<button type="button" class="evt-check end" disabled>★ 已集齐</button>';
   else if(nextSpot&&inRange)checkBtn=isCur
     ?`<button type="button" class="evt-check" data-action="checkin" data-spot="${esc(nextSpot.id)}">📍 立即打卡</button>`
@@ -2508,7 +2513,7 @@ function renderEventPage(){
 </header>
 <section class="panel evt-hero${E.coverUrl?' has-cover':''}">${E.coverUrl?`<span class="evt-hero-cover" aria-hidden="true"><img src="${esc(photoAbsUrl(E.coverUrl))}" alt=""></span>`:''}<span class="evt-hero-star" aria-hidden="true">${pixIcon('star')}</span><div class="evt-hero-progress"><span class="evt-bar-track"><i style="width:${total?Math.round(doneN/total*100):0}%"></i></span><b class="mono">${doneN}/${total}</b></div></section>
 <section class="evt-head">
-<div><h1>${esc(E.name)}</h1><div class="evt-tags">${ended?'<span class="evt-tag end">已结束</span>':'<span class="evt-tag live">LIVE</span>'}<span class="evt-tag">${total} SPOTS</span></div></div>
+<div><h1>${esc(E.name)}</h1><div class="evt-tags">${ended?'<span class="evt-tag end">已结束</span>':upcoming?'<span class="evt-tag end">未开始</span>':'<span class="evt-tag live">LIVE</span>'}<span class="evt-tag">${total} SPOTS</span>${winStr?`<span class="evt-tag">${esc(winStr)}</span>`:''}</div></div>
 </section>
 <section class="evt-info">
 <div class="panel evt-info-card"><span class="evt-info-ico" aria-hidden="true">📍</span><div><strong>${esc(venue)}</strong>${distM!=null?`<span class="evt-dist">距你 ${fmtDistance(distM)}</span>`:''}</div><button type="button" class="evt-nav-btn" data-action="nav" data-view="explore" aria-label="在地图上查看">➤</button></div>
@@ -2898,7 +2903,7 @@ function treasureMapInner(){
 function liveCardsInner(){
   if(nearEventsStatus==='loading'||nearEventsStatus==='idle')return '<p class="about-list mono" style="padding:8px 0">加载中…</p>';
   const scoped=atlasCitySel==='near'?atlasCityEvents():atlasCityEvents();
-  if(!scoped.length)return '<p class="about-list mono" style="padding:8px 0">这个城市暂时没有活动。</p>';
+  if(!scoped.length)return `<div class="live-cell-empty" style="max-width:none;width:100%;min-height:180px"><span class="live-dither" aria-hidden="true"></span><p class="mono" style="font-size:11px;color:var(--muted);margin:0">这个城市暂时没有活动。</p><button type="button" class="btn btn-dark" style="width:auto;min-height:0;padding:8px 14px;display:inline-flex" data-action="nav" data-view="events">EVENTS HALL →</button></div>`;
   return scoped.slice(0,8).map(e=>{
     const off=e.active===false;
     const sp=(e.spots&&e.spots[0])||{};
@@ -3322,7 +3327,7 @@ function renderMyEventsList(wrap){
   const stats=Array.isArray(myEventsStats)?myEventsStats:[];
   wrap.innerHTML=myEvents.map(e=>{
     const st=stats.find(x=>x.key===e.key);
-    const badge=e.active?'<span class="wb-badge on">进行中</span>':'<span class="wb-badge off">已下架</span>';
+    const badge=e.status==='ended'?'<span class="wb-badge off">已结束</span>':e.status==='upcoming'?'<span class="wb-badge wait">未开始</span>':e.active?'<span class="wb-badge on">进行中</span>':'<span class="wb-badge off">已下架</span>';
     const dataLine=st?`<span class="about-list mono">${st.visitors} 人 · ${st.checkins} 章 · ${st.photos} 图</span>`:'';
     const redeem=st&&st.voucherEnabled?`<div class="wb-redeem"><input id="redeem-${esc(e.key)}" class="name-input mono" style="min-height:0;padding:7px 8px;font-size:12px;width:104px;text-transform:uppercase" placeholder="核销码" maxlength="6"><button type="button" class="stamp-btn" data-action="wb-redeem" data-event="${esc(e.key)}"><span>核销</span><span>CHECK-IN</span></button></div>`:'';
     return `<div class="wb-ticket"><div class="wb-ticket-top"><div><h3>${esc(e.name)}</h3>${dataLine}</div>${badge}</div><div class="wb-ticket-dash"></div><div class="wb-ticket-actions"><button type="button" class="btn btn-quiet" style="width:auto;min-height:0;padding:8px 10px;font-size:11px" data-action="wb-cover" data-event="${esc(e.key)}">${e.coverUrl?'换首图':'传首图'}</button><button type="button" class="btn btn-quiet" style="width:auto;min-height:0;padding:8px 10px;font-size:11px" data-action="wb-promo" data-event="${esc(e.key)}">宣传照</button><button type="button" class="btn btn-quiet" style="width:auto;min-height:0;padding:8px 10px;font-size:11px" data-action="wb-calib" data-event="${esc(e.key)}">📍 校准位置</button><button type="button" class="btn btn-quiet" style="width:auto;min-height:0;padding:8px 10px;font-size:11px" data-action="wb-active-toggle" data-event="${esc(e.key)}" data-to="${e.active?'0':'1'}">${e.active?'下架':'上架'}</button><button type="button" class="btn btn-quiet" style="width:auto;min-height:0;padding:8px 10px;font-size:11px" data-action="event-open" data-event="${esc(e.key)}">查看</button>${redeem}</div></div>`;
@@ -3352,11 +3357,13 @@ function renderWorkbench(){
   if(!wrap||!devMode)return;
   if(mode==='api'&&geo.state==='idle')startLocate();
   const spots=ensureWbSpots();
+  /* datetime-local 需要「本地时间」格式的默认值：开始=现在，结束=现在+4小时 */
+  const wbTimeField=(offMin)=>{const d=new Date(Date.now()+offMin*60000);const p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;};
   const row=(sp,i)=>`<div class="wb-row"><div class="wb-head"><strong>点位 ${i+1}</strong><span style="display:flex;gap:6px">${spots.length>1?`<button type="button" class="live-status-btn" data-action="wb-del" data-idx="${i}">删</button>`:''}<button type="button" class="live-status-btn" data-action="wb-use-loc" data-idx="${i}">📍 用我的位置</button></span></div>
 <div class="form-row"><input class="name-input wb-in" style="min-height:0;padding:8px 10px;font-size:12px" data-idx="${i}" data-f="name" value="${esc(sp.name)}" placeholder="点位名，如：南门舞台" maxlength="12"></div>
 <div class="form-row"><span class="wb-loc mono" data-loc="${i}" style="flex:1;font-size:11px;align-self:center">${wbLocText(sp)}</span></div></div>`;
-  /* 重建前保留商家已输入的名称/介绍/上架开关，防止点定位按钮后丢失 */
-  const prevName=document.getElementById('wb-name'),prevSub=document.getElementById('wb-subtitle'),prevActive=document.getElementById('wb-active'),prevVoucher=document.getElementById('wb-voucher');
+  /* 重建前保留商家已输入的名称/介绍/时间窗/上架开关，防止点定位按钮后丢失 */
+  const prevName=document.getElementById('wb-name'),prevSub=document.getElementById('wb-subtitle'),prevActive=document.getElementById('wb-active'),prevVoucher=document.getElementById('wb-voucher'),prevStart=document.getElementById('wb-start'),prevEnd=document.getElementById('wb-end');
   if(wbView==='dash'){renderWbDash(wrap);return;}
   const via=geo.state==='ok'?(geo.via==='ip'?'ip':'fine'):'none';
   const banner=via==='ip'
@@ -3364,7 +3371,7 @@ function renderWorkbench(){
     :(via==='fine'
       ?`<div class="wb-geo ok">✓ 已有精确定位（约 ${Math.round(geo.accuracy||0)} 米）。站在点位处点「用我的位置」锁定。</div>`
       :'<div class="wb-geo">定位未就绪：发布前请到活动场地，点「用我的位置」锁定点位。</div>');
-  wrap.innerHTML=`<div class="wb-head"><div><p class="mono wb-mode">ORGANIZER_MODE_ENABLED</p><h3>创建新活动</h3></div><button type="button" class="btn btn-dark" style="width:auto;min-height:0;padding:8px 12px;font-size:11px" data-action="wb-dash">← 返回账本</button></div>${banner}<form id="wb-form"><input id="wb-name" class="name-input" style="min-height:0;padding:10px 12px;font-size:13px;margin-bottom:8px" placeholder="活动名称" maxlength="20" value="${esc(prevName?prevName.value:'')}"><input id="wb-subtitle" class="name-input" style="min-height:0;padding:10px 12px;font-size:13px;margin-bottom:10px" placeholder="一句话介绍，如：周末市集 · 集章打卡" maxlength="30" value="${esc(prevSub?prevSub.value:'')}">${spots.map(row).join('')}<div style="margin:4px 0 8px">${spots.length<10?`<button type="button" class="live-status-btn" data-action="wb-add">+ 加点位</button>`:'<span class="about-list mono" style="margin:0">最多 10 个点位。</span>'}</div><label class="name-label" style="margin:10px 0 4px"><span style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="wb-active"${prevActive?(prevActive.checked?' checked':''):' checked'}>创建后立即上架</span></label><label class="name-label" style="margin:4px 0"><span style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="wb-voucher"${prevVoucher&&prevVoucher.checked?' checked':''}>启用到店凭证</span></label><p class="input-error" id="wb-error" role="alert" style="min-height:14px;margin:8px 0 0"></p><div class="modal-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary"${wbBusy?' disabled':''}>发布活动</button></div></form><div class="setting-section"><h3>我发布的活动</h3><div id="wb-my-events"><p class="about-list">加载中…</p></div></div>`;
+  wrap.innerHTML=`<div class="wb-head"><div><p class="mono wb-mode">ORGANIZER_MODE_ENABLED</p><h3>创建新活动</h3></div><button type="button" class="btn btn-dark" style="width:auto;min-height:0;padding:8px 12px;font-size:11px" data-action="wb-dash">← 返回账本</button></div>${banner}<form id="wb-form"><input id="wb-name" class="name-input" style="min-height:0;padding:10px 12px;font-size:13px;margin-bottom:8px" placeholder="活动名称" maxlength="20" value="${esc(prevName?prevName.value:'')}"><input id="wb-subtitle" class="name-input" style="min-height:0;padding:10px 12px;font-size:13px;margin-bottom:10px" placeholder="一句话介绍，如：周末市集 · 集章打卡" maxlength="30" value="${esc(prevSub?prevSub.value:'')}"><div class="form-row" style="display:flex;gap:8px;margin-bottom:10px"><div style="flex:1;min-width:0"><label class="about-list mono" style="display:block;margin:0 0 4px;font-size:10px;letter-spacing:.08em">开始时间</label><input id="wb-start" type="datetime-local" class="name-input" style="min-height:0;padding:10px 12px;font-size:13px;width:100%" value="${esc(prevStart?prevStart.value:wbTimeField(0))}"></div><div style="flex:1;min-width:0"><label class="about-list mono" style="display:block;margin:0 0 4px;font-size:10px;letter-spacing:.08em">结束时间</label><input id="wb-end" type="datetime-local" class="name-input" style="min-height:0;padding:10px 12px;font-size:13px;width:100%" value="${esc(prevEnd?prevEnd.value:wbTimeField(240))}"></div></div><p class="about-list mono" style="margin:-4px 0 10px;font-size:10px;letter-spacing:.06em">到期自动下架，打卡通道同步关闭。</p>${spots.map(row).join('')}<div style="margin:4px 0 8px">${spots.length<10?`<button type="button" class="live-status-btn" data-action="wb-add">+ 加点位</button>`:'<span class="about-list mono" style="margin:0">最多 10 个点位。</span>'}</div><label class="name-label" style="margin:10px 0 4px"><span style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="wb-active"${prevActive?(prevActive.checked?' checked':''):' checked'}>创建后立即上架</span></label><label class="name-label" style="margin:4px 0"><span style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="wb-voucher"${prevVoucher&&prevVoucher.checked?' checked':''}>启用到店凭证</span></label><p class="input-error" id="wb-error" role="alert" style="min-height:14px;margin:8px 0 0"></p><div class="modal-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary"${wbBusy?' disabled':''}>发布活动</button></div></form><div class="setting-section"><h3>我发布的活动</h3><div id="wb-my-events"><p class="about-list">加载中…</p></div></div>`;
   loadMyEventsList();
 }
 function wbError(msg){toast(msg);const el=document.getElementById('wb-error');if(el)el.textContent=msg;}
@@ -3373,6 +3380,14 @@ async function submitWorkbench(){
   const name=document.getElementById('wb-name').value.trim();
   if(!name){wbError('填写活动名称。');return;}
   const subtitle=document.getElementById('wb-subtitle').value.trim();
+  /* 时间窗：结束必填且晚于现在；开始可选但必须早于结束（datetime-local 的值按本地时区解析成 Date） */
+  const startInput=document.getElementById('wb-start'),endInput=document.getElementById('wb-end');
+  const startAtDate=(startInput&&startInput.value)?new Date(startInput.value):null;
+  const endAtDate=(endInput&&endInput.value)?new Date(endInput.value):null;
+  if(!endAtDate||Number.isNaN(endAtDate.getTime())){wbError('请填写活动结束时间。');return;}
+  if(startAtDate&&Number.isNaN(startAtDate.getTime())){wbError('开始时间无效。');return;}
+  if(endAtDate.getTime()<=Date.now()){wbError('结束时间需晚于当前时间。');return;}
+  if(startAtDate&&endAtDate.getTime()<=startAtDate.getTime()){wbError('结束时间需晚于开始时间。');return;}
   const active=document.getElementById('wb-active').checked;
   const voucherEnabled=Boolean(document.getElementById('wb-voucher')&&document.getElementById('wb-voucher').checked);
   /* 坐标解析：锁定的用锁定值；未锁定的用当前定位；拿不到真实定位就明确拒绝，绝不造假坐标 */
@@ -3393,7 +3408,7 @@ async function submitWorkbench(){
       lng,lat
     });
   }
-  const payload={name,subtitle,active,voucherEnabled,spots:spotsPayload};
+  const payload={name,subtitle,active,voucherEnabled,startAt:startAtDate?startAtDate.toISOString():null,endAt:endAtDate.toISOString(),spots:spotsPayload};
   wbBusy=true;
   const pubBtn=document.querySelector('#wb-form button[type="submit"]');
   if(pubBtn){pubBtn.disabled=true;pubBtn.textContent='发布中…';}
@@ -3466,10 +3481,10 @@ async function loadMyVouchers(){
 function renderVoucherList(failed){
   const el=document.getElementById('voucher-list');
   if(!el)return;
-  if(failed){el.innerHTML='<p class="about-list">凭证加载失败。<button type="button" class="live-status-btn" data-action="voucher-retry">重试</button></p>';return;}
-  if(!myVoucherList){el.innerHTML='<p class="about-list">加载中…</p>';return;}
-  if(!myVoucherList.length){el.innerHTML='<p class="about-list">暂无凭证</p>';return;}
-  el.innerHTML=myVoucherList.map(v=>`<div class="ticket"><div class="ticket-main"><span class="ticket-code mono">${esc(v.code)}</span><span class="ticket-name mono">${esc(v.eventName)}</span></div><div class="ticket-stub"><span class="ticket-stamp mono">未核销<br>COLLECT</span></div></div>`).join('');
+  if(failed){el.innerHTML=localize('<p class="about-list">凭证加载失败。<button type="button" class="live-status-btn" data-action="voucher-retry">重试</button></p>');return;}
+  if(!myVoucherList){el.innerHTML=localize('<p class="about-list">加载中…</p>');return;}
+  if(!myVoucherList.length){el.innerHTML=localize('<p class="about-list">暂无凭证</p>');return;}
+  el.innerHTML=myVoucherList.map(v=>`<div class="ticket"><div class="ticket-main"><span class="ticket-code mono">${esc(v.code)}</span><span class="ticket-name mono">${esc(v.eventName)}</span></div><div class="ticket-stub"><span class="ticket-stamp mono">${localize('未核销')}<br>COLLECT</span></div></div>`).join('');
 }
 function renderMinePage(){
   const mapEngBtn=mode==='api'
